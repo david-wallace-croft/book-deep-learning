@@ -13,7 +13,8 @@
 
 ## Usage
 
-- cargo run
+- cargo run -p ch2-p026
+- \[...\]
 
 ## History
 
