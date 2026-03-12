@@ -23,4 +23,4 @@ members = ["ch2-p026", "ch2-p027", "ch2-p028"]
 [workspace.dependencies]
 linfa = "=0.7.0"
 ndarray = "=0.15.6"
-tch = "0.23.0"
+tch = "=0.23.0"
