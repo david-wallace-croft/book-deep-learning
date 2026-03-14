@@ -17,6 +17,11 @@ version = "0.0.0-SNAPSHOT"
 [profile.dev]
 debug = "line-tables-only"
 
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = 3
+
 [workspace]
 members = ["ch2-p026", "ch2-p027", "ch2-p028", "ch2-p029"]
 
@@ -24,4 +29,6 @@ members = ["ch2-p026", "ch2-p027", "ch2-p028", "ch2-p029"]
 autograd = "=1.1.1"
 linfa = "=0.7.0"
 ndarray = "=0.15.6"
+rayon = "1.11.0"
 tch = "=0.23.0"
+tokio = "1.50.0"
