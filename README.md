@@ -1,9 +1,12 @@
 # Book Deep Learning
 
 [![MIT licensed][mit-badge]][mit-url]
+[![Rust][rust-badge]][rust-url]
 
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [mit-url]: https://github.com/david-wallace-croft/book-deep-learning/blob/main/LICENSE.txt
+[rust-badge]: https://github.com/david-wallace-croft/book-deep-learning/actions/workflows/rust.yml/badge.svg
+[rust-url]: https://github.com/david-wallace-croft/book-deep-learning/actions/workflows/rust.yml
 
 - Code adapted from the book "Deep Learning with Rust" by Maleki
   - [https://link.springer.com/book/10.1007/979-8-8688-2208-7](
