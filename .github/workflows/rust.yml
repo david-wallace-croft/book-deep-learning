@@ -19,6 +19,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Torch
         run: pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+      - name: Set Environment Variable
+        run: echo "LIBTORCH_USE_PYTORCH=1" >> $GITHUB_ENV
       # # 1. Cache LibTorch to speed up subsequent runs
       # - name: Cache LibTorch
       #   id: cache-libtorch
