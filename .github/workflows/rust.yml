@@ -39,9 +39,9 @@ jobs:
       # 4. Build your project
       - name: Configure and Build
         run: |
-          mkdir build && cd build
-          cmake -DCMAKE_PREFIX_PATH=$Torch_DIR ..
-          cmake --build .
+          mkdir -p build
+          cmake -S . -B build -DCMAKE_PREFIX_PATH="${{ github.workspace }}/libtorch"
+          cmake --build  build
       - name: Build
         run: cargo build --all --verbose
       - name: Run tests
