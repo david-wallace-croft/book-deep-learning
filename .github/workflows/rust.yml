@@ -17,31 +17,33 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      # 1. Cache LibTorch to speed up subsequent runs
-      - name: Cache LibTorch
-        id: cache-libtorch
-        uses: actions/cache@v4
-        with:
-          path: libtorch
-          key: ${{ runner.os }}-libtorch-2.1.0 # Update version as needed
-      # 2. Download and unzip only if cache miss
-      - name: Download LibTorch
-        if: steps.cache-libtorch.outputs.cache-hit != 'true'
-        run: |
-          wget https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.1.0%2Bcpu.zip -O libtorch.zip
-          unzip libtorch.zip
-          rm libtorch.zip
-      # 3. Set Environment Variables
-      - name: Set Environment Variables
-        run: |
-          echo "Torch_DIR=${{ github.workspace }}/libtorch/share/cmake/Torch" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=${{ github.workspace }}/libtorch/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-      # 4. Build your project
-      - name: Configure and Build
-        run: |
-          mkdir -p build
-          cmake -S . -B build -DCMAKE_PREFIX_PATH="${{ github.workspace }}/libtorch"
-          cmake --build  build
+      - name: Install Torch
+        run: pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+      # # 1. Cache LibTorch to speed up subsequent runs
+      # - name: Cache LibTorch
+      #   id: cache-libtorch
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: libtorch
+      #     key: ${{ runner.os }}-libtorch-2.1.0 # Update version as needed
+      # # 2. Download and unzip only if cache miss
+      # - name: Download LibTorch
+      #   if: steps.cache-libtorch.outputs.cache-hit != 'true'
+      #   run: |
+      #     wget https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.1.0%2Bcpu.zip -O libtorch.zip
+      #     unzip libtorch.zip
+      #     rm libtorch.zip
+      # # 3. Set Environment Variables
+      # - name: Set Environment Variables
+      #   run: |
+      #     echo "Torch_DIR=${{ github.workspace }}/libtorch/share/cmake/Torch" >> $GITHUB_ENV
+      #     echo "LD_LIBRARY_PATH=${{ github.workspace }}/libtorch/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+      # # 4. Build your project
+      # - name: Configure and Build
+      #   run: |
+      #     mkdir -p build
+      #     cmake -S . -B build -DCMAKE_PREFIX_PATH="${{ github.workspace }}/libtorch"
+      #     cmake --build  build
       - name: Build
         run: cargo build --all --verbose
       - name: Run tests
