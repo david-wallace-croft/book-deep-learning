@@ -151,6 +151,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ch2-pr1"
+version = "0.0.0-SNAPSHOT"
+dependencies = [
+ "autograd",
+]
+
+[[package]]
 name = "cipher"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
