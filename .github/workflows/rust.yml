@@ -17,14 +17,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Cache Torch
-        id: cache-torch
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-torch
+      # - name: Cache Torch
+      #   id: cache-torch
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.cache/pip
+      #     key: ${{ runner.os }}-pip-torch
       - name: Install Torch
-        if: steps.cache-torch.outputs.cache-hit != 'true'
+        # if: steps.cache-torch.outputs.cache-hit != 'true'
         run: pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
       - name: Set Environment Variable
         run: echo "LIBTORCH_USE_PYTORCH=1" >> $GITHUB_ENV
