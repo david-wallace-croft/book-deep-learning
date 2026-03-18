@@ -4,7 +4,7 @@ description = "Code adapted from 'Deep Learning with Rust' by Mehrdad Maleki"
 edition = "2024"
 homepage = "https://www.CroftSoft.com/"
 license = "MIT"
-name = "book-deep-learning"
+name = "ch2-pr2"
 publish = false
 readme = "README.md"
 repository = "https://github.com/david-wallace-croft/book-deep-learning"
@@ -12,23 +12,4 @@ rust-version = "1.93.1"
 version = "0.0.0-SNAPSHOT"
 
 [dependencies]
-# none
-
-[profile.dev]
-debug = "line-tables-only"
-
-[profile.release]
-codegen-units = 1
-lto = "thin"
-opt-level = 3
-
-[workspace]
-members = ["ch2-p026", "ch2-p027", "ch2-p028", "ch2-p029", "ch2-pr1", "ch2-pr2"]
-
-[workspace.dependencies]
-autograd = "=1.1.1"
-linfa = "=0.7.0"
-ndarray = "=0.15.6"
-rayon = "1.11.0"
-tch = "=0.23.0"
-tokio = "1.50.0"
+ndarray = { workspace = true }

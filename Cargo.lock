@@ -158,6 +158,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ch2-pr2"
+version = "0.0.0-SNAPSHOT"
+dependencies = [
+ "ndarray 0.15.6",
+]
+
+[[package]]
 name = "cipher"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
