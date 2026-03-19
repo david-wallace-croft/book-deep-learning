@@ -15,11 +15,17 @@ version = "0.0.0-SNAPSHOT"
 # none
 
 [profile.dev]
-debug = "line-tables-only"
+codegen-units = 256
+# debug = "line-tables-only"
+debug = true
+opt-level = 0
+lto = "off"
 
 [profile.release]
 codegen-units = 1
-lto = "thin"
+debug = false
+# lto = "thin"
+lto = true
 opt-level = 3
 
 [workspace]
