@@ -18,8 +18,11 @@ mod test {
       1, 2, 3,
     ]);
 
-    let actual = arr.to_string();
+    let actual = &format!("{arr:?}");
 
-    assert_eq!(actual, "[1, 2, 3]");
+    assert_eq!(
+      actual,
+      "[1, 2, 3], shape=[3], strides=[1], layout=CFcf (0xf), const ndim=1"
+    );
   }
 }
