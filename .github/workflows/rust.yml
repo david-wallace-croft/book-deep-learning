@@ -29,7 +29,7 @@ jobs:
       - name: Show Location
         run: python -m pip show torch
       - name: Show Location 2
-        run: ls -Flatr /home/runner/.local/lib/python3.12/site-packages/torch
+        run: ls -Flatr /home/runner/.local/lib/python3.12/site-packages/torch/lib
       - name: Set Environment Variable
         run: echo "LIBTORCH_USE_PYTORCH=1" >> $GITHUB_ENV
       - name: Set Environment Variable 2
