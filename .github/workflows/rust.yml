@@ -29,9 +29,11 @@ jobs:
       - name: Show Location
         run: python -m pip show torch
       - name: Show Location 2
-        run: ls -Flatr /home/runner/.local/lib/python3.12/site-packages
+        run: ls -Flatr /home/runner/.local/lib/python3.12/site-packages/libtorch
       - name: Set Environment Variable
         run: echo "LIBTORCH_USE_PYTORCH=1" >> $GITHUB_ENV
+      - name: Set Environment Variable 2
+        run: echo "export LD_LIBRARY_PATH=/home/runner/.local/lib/python3.12/site-packages/libtorch/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
       - name: Build
         run: cargo build --all --verbose
       - name: Run tests
