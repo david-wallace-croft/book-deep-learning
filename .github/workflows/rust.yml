@@ -21,6 +21,7 @@ jobs:
         id: site-path
         run: |
           SITE_PATH=$(python3 -c "import site; print(site.getsitepackages()[0])")
+          echo "path=$SITE_PATH"
           echo "path=$SITE_PATH" >> $GITHUB_OUTPUT
       - name: Cache Torch
         id: cache-torch
