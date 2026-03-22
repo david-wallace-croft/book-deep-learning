@@ -37,8 +37,11 @@ jobs:
 
           TORCH_PATH=$(python -c 'import torch; import os; print(os.path.dirname(torch.__file__))')
           
+          echo "LIBTORCH=$TORCH_PATH"
           echo "LIBTORCH=$TORCH_PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$TORCH_PATH/lib:$LD_LIBRARY_PATH"
           echo "LD_LIBRARY_PATH=$TORCH_PATH/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          echo "LIBTORCH_USE_PYTORCH=1"
           echo "LIBTORCH_USE_PYTORCH=1" >> $GITHUB_ENV
 
           ls -Flatr ${{ steps.site-path.outputs.path }}
