@@ -31,6 +31,8 @@ jobs:
       #     echo "LIBTORCH=$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')" >> $GITHUB_ENV
       - name: Install Torch
         run: |
+          pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          
           # Get the base path of the torch installation
           TORCH_PATH=$(python -c 'import torch; import os; print(os.path.dirname(torch.__file__))')
           
