@@ -15,8 +15,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v6
+      - name: Cache Python
+        uses: actions/setup-python@v6
+        with:
+          cache: 'pip'
       # - name: Cache Torch
       #   id: cache-torch
       #   uses: actions/cache@v4
@@ -31,18 +35,17 @@ jobs:
       #     echo "LIBTORCH=$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')" >> $GITHUB_ENV
       - name: Install Torch
         run: |
-          pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          
-          # Get the base path of the torch installation
+          pip cache list torch || echo "Torch not found in cache"
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
           TORCH_PATH=$(python -c 'import torch; import os; print(os.path.dirname(torch.__file__))')
           
-          # Set LIBTORCH and update LD_LIBRARY_PATH
           echo "LIBTORCH=$TORCH_PATH" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=$TORCH_PATH/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
           echo "LIBTORCH_USE_PYTORCH=1" >> $GITHUB_ENV
           
           # Also helpful for some older versions of tch-rs
-          echo "C_INCLUDE_PATH=$TORCH_PATH/include:$TORCH_PATH/include/torch/csrc/api/include" >> $GITHUB_ENV
+          # echo "C_INCLUDE_PATH=$TORCH_PATH/include:$TORCH_PATH/include/torch/csrc/api/include" >> $GITHUB_ENV
       # - name: Show Location
       #   run: python -m pip show torch
       # - name: Show Location 2
