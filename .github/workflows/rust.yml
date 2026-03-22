@@ -40,6 +40,8 @@ jobs:
           echo "LIBTORCH=$TORCH_PATH" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=$TORCH_PATH/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
           echo "LIBTORCH_USE_PYTORCH=1" >> $GITHUB_ENV
+
+          lf -Flatr ${{ steps.site-path.outputs.path }}
       - name: Build
         run: cargo build --all --verbose
       - name: Run tests
