@@ -17,13 +17,16 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
-      - name: List Cache
-        run: ls -Flatr ~/.cache/pip
+      - name: Get Site Path
+        id: site-path
+        run: |
+          SITE_PATH=$(python3 -c "import site; print(site.getsitepackages()[0])")
+          echo "path=$SITE_PATH" >> $GITHUB_OUTPUT
       - name: Cache Torch
         id: cache-torch
         uses: actions/cache@v5
         with:
-          path: ~/.cache/pip
+          path: ${{ steps.site-path.outputs.path }}
           key: ${{ runner.os }}-pip-torch
       - name: Install Torch
         if: steps.cache-torch.outputs.cache-hit != 'true'
