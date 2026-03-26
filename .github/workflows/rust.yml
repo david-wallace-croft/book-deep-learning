@@ -12,6 +12,7 @@ env:
 jobs:
   build:
 
+    # TODO: look for a pytorch ubuntu
     runs-on: ubuntu-latest
 
     steps:
