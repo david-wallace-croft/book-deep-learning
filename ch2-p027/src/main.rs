@@ -1,8 +1,11 @@
 use ::linfa::Dataset;
+use ::ndarray::ArrayBase;
+use ::ndarray::Dim;
+use ::ndarray::OwnedRepr;
 use ::ndarray::array;
 
 fn main() {
-  let features = array![
+  let features: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>> = array![
     [
       1., 2.
     ],
@@ -11,11 +14,14 @@ fn main() {
     ]
   ];
 
-  let targets = array![
+  let targets: ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>> = array![
     0, 1
   ];
 
-  let dataset = Dataset::new(features, targets);
+  let dataset: linfa::DatasetBase<
+    ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>,
+    ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>>,
+  > = Dataset::new(features, targets);
 
   println!("Linfa dataset: {dataset:?}");
 }
@@ -26,7 +32,7 @@ mod test {
 
   #[test]
   fn test() {
-    let features = array![
+    let features: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>> = array![
       [
         1., 2.
       ],
@@ -35,13 +41,16 @@ mod test {
       ]
     ];
 
-    let targets = array![
+    let targets: ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>> = array![
       0, 1
     ];
 
-    let dataset = Dataset::new(features, targets);
+    let dataset: linfa::DatasetBase<
+      ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>,
+      ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>>,
+    > = Dataset::new(features, targets);
 
-    let actual = &format!("{dataset:?}");
+    let actual: &String = &format!("{dataset:?}");
 
     assert_eq!(
       actual,
@@ -49,7 +58,7 @@ mod test {
       strides=[2, 1], layout=Cc (0x5), const ndim=2, targets: [0, 1], \
       shape=[2], strides=[1], layout=CFcf (0xf), const ndim=1, weights: [], \
       shape=[0], strides=[0], layout=CFcf (0xf), const ndim=1, \
-      feature_names: [] }"
+      feature_names: [], target_names: [] }"
     );
   }
 }
