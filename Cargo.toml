@@ -34,6 +34,7 @@ members = ["ch2-p026", "ch2-p027", "ch2-p028", "ch2-p029", "ch2-pr1", "ch2-pr2"]
 [workspace.dependencies]
 autograd = "=1.1.1"
 linfa = "=0.8.1"
+# linfa 0.8 is incompatible with ndarray 0.17
 ndarray = "=0.16.1"
 rayon = "1.11.0"
 tch = "=0.24.0"
