@@ -1,7 +1,10 @@
 use ::ndarray::Array;
+use ::ndarray::ArrayBase;
+use ::ndarray::Dim;
+use ::ndarray::OwnedRepr;
 
 fn main() {
-  let arr = Array::from_vec(vec![
+  let arr: ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>> = Array::from_vec(vec![
     1, 2, 3,
   ]);
 
@@ -14,11 +17,12 @@ mod test {
 
   #[test]
   fn test() {
-    let arr = Array::from_vec(vec![
-      1, 2, 3,
-    ]);
+    let arr: ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>> =
+      Array::from_vec(vec![
+        1, 2, 3,
+      ]);
 
-    let actual = &format!("{arr:?}");
+    let actual: &String = &format!("{arr:?}");
 
     assert_eq!(
       actual,
