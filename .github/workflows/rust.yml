@@ -18,19 +18,19 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
-      # - name: Cache Torch
-      #   id: cache-venv
-      #   uses: actions/cache@v5
-      #   with:
-      #     path: .venv
-      #     key: ${{ runner.os }}-venv
-      # - name: Download Torch
-      #   if: steps.cache-venv.outputs.cache-hit != 'true'
-      #   run: |
-      #     python -m venv .venv
-      #     source .venv/bin/activate
+      - name: Cache Torch
+        id: cache-venv
+        uses: actions/cache@v5
+        with:
+          path: .venv
+          key: ${{ runner.os }}-venv-torch-2.11
+      - name: Download Torch
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
 
-      #     pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
       - name: Set Environment
         run: |
           source .venv/bin/activate
