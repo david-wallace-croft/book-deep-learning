@@ -22,7 +22,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .venv
-          key: ${{ runner.os }}-venv-torch-2.11
+          key: ${{ runner.os }}-venv-torch-${{ hashFiles('Cargo.toml') }}
       - name: Download Torch
         if: steps.cache-venv.outputs.cache-hit != 'true'
         run: |
