@@ -2,18 +2,18 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
+    name: Build All
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -28,23 +28,29 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
       - name: Set Environment
         run: |
           source .venv/bin/activate
-          TORCH_PATH=$(python -c 'import torch; import os; print(os.path.dirname(torch.__file__))')
-          
+          TORCH_PATH=$(python -c 'import torch; import os; print(os.path.dirname(torch.__file__))')          
           echo "LIBTORCH=$TORCH_PATH"
           echo "LIBTORCH=$TORCH_PATH" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=$TORCH_PATH/lib:$LD_LIBRARY_PATH"
           echo "LD_LIBRARY_PATH=$TORCH_PATH/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
           echo "LIBTORCH_USE_PYTORCH=1"
           echo "LIBTORCH_USE_PYTORCH=1" >> $GITHUB_ENV
-      - name: Build
+      - name: Build All
         run: |
           source .venv/bin/activate
-          cargo build --all --verbose
-      - name: Run tests
+          # cargo build --all --verbose
+          cargo build --all
+      - name: Test All
         run: |
-          cargo test --all --verbose
+          # cargo test --all --verbose
+          cargo test --all
+      - name: Clippy All
+        run: |
+          cargo clippy --all -- -D warnings
+      - name: Format Check All
+        run: |
+          cargo fmt --all -- --check
