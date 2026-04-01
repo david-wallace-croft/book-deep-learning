@@ -10,8 +10,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build All
+  test:
+    name: Test All
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -39,18 +39,19 @@ jobs:
           echo "LD_LIBRARY_PATH=$TORCH_PATH/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
           echo "LIBTORCH_USE_PYTORCH=1"
           echo "LIBTORCH_USE_PYTORCH=1" >> $GITHUB_ENV
-      - name: Build All
-        run: |
-          source .venv/bin/activate
-          # cargo build --all --verbose
-          cargo build --all
+      # - name: Build All
+      #   run: |
+      #     source .venv/bin/activate
+      #     # cargo build --all --verbose
+      #     cargo build --all
       - name: Test All
         run: |
+          source .venv/bin/activate
           # cargo test --all --verbose
           cargo test --all
       - name: Clippy All
         run: |
-          cargo clippy --all -- -D warnings
+          cargo clippy --all -- -Dwarnings
       - name: Format Check All
         run: |
           cargo fmt --all -- --check
