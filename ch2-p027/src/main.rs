@@ -1,11 +1,15 @@
 use ::linfa::Dataset;
+use ::linfa::DatasetBase;
 use ::ndarray::ArrayBase;
 use ::ndarray::Dim;
 use ::ndarray::OwnedRepr;
 use ::ndarray::array;
 
+type Features = ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>;
+type Targets = ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>>;
+
 fn main() {
-  let features: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>> = array![
+  let features: Features = array![
     [
       1., 2.
     ],
@@ -14,14 +18,11 @@ fn main() {
     ]
   ];
 
-  let targets: ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>> = array![
+  let targets: Targets = array![
     0, 1
   ];
 
-  let dataset: linfa::DatasetBase<
-    ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>,
-    ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>>,
-  > = Dataset::new(features, targets);
+  let dataset: DatasetBase<Features, Targets> = Dataset::new(features, targets);
 
   println!("Linfa dataset: {dataset:?}");
 }
@@ -32,7 +33,7 @@ mod test {
 
   #[test]
   fn test() {
-    let features: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>> = array![
+    let features: Features = array![
       [
         1., 2.
       ],
@@ -41,14 +42,12 @@ mod test {
       ]
     ];
 
-    let targets: ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>> = array![
+    let targets: Targets = array![
       0, 1
     ];
 
-    let dataset: linfa::DatasetBase<
-      ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>,
-      ArrayBase<OwnedRepr<i32>, Dim<[usize; 1]>>,
-    > = Dataset::new(features, targets);
+    let dataset: DatasetBase<Features, Targets> =
+      Dataset::new(features, targets);
 
     let actual: &String = &format!("{dataset:?}");
 
