@@ -29,7 +29,15 @@ lto = true
 opt-level = 3
 
 [workspace]
-members = ["ch2-p026", "ch2-p027", "ch2-p028", "ch2-p029", "ch2-pr1", "ch2-pr2"]
+members = [
+  "ch2-p026",
+  "ch2-p027",
+  "ch2-p028",
+  "ch2-p029",
+  "ch2-pr1",
+  "ch2-pr2",
+  "ch3-pr1",
+]
 
 [workspace.dependencies]
 autograd = "=1.1.1"
