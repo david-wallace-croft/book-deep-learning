@@ -167,16 +167,14 @@ dependencies = [
 [[package]]
 name = "ch3-pr1"
 version = "0.0.0-SNAPSHOT"
-dependencies = [
- "ndarray 0.16.1",
-]
 
 [[package]]
 name = "ch3-pr2"
 version = "0.0.0-SNAPSHOT"
-dependencies = [
- "ndarray 0.16.1",
-]
+
+[[package]]
+name = "ch3-pr3"
+version = "0.0.0-SNAPSHOT"
 
 [[package]]
 name = "cipher"

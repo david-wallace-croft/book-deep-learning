@@ -38,6 +38,7 @@ members = [
   "ch2-pr2",
   "ch3-pr1",
   "ch3-pr2",
+  "ch3-pr3",
 ]
 
 [workspace.dependencies]
