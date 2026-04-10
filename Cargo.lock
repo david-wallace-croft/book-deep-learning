@@ -181,6 +181,10 @@ name = "ch3-pr4"
 version = "0.0.0-SNAPSHOT"
 
 [[package]]
+name = "ch3-pr5"
+version = "0.0.0-SNAPSHOT"
+
+[[package]]
 name = "cipher"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
