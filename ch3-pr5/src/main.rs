@@ -14,7 +14,7 @@ fn main() {
   println!("Squares: {squares:?}");
 }
 
-fn square(numbers: &Vec<i32>) -> Vec<i32> {
+fn square(numbers: &[i32]) -> Vec<i32> {
   let squares_iter: Iter<i32> = numbers.iter();
 
   let squares_map = squares_iter.map(|n: &i32| n * n);
