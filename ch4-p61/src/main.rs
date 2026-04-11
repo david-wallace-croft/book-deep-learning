@@ -3,7 +3,7 @@ use ::std::fs::File;
 use ::std::path::PathBuf;
 
 fn main() -> Result<(), Error> {
-  let records = read_records()?;
+  let records: Vec<StringRecord> = read_records()?;
 
   for record in records {
     println!("{record:?}");
@@ -15,13 +15,13 @@ fn main() -> Result<(), Error> {
 fn read_records() -> Result<Vec<StringRecord>, Error> {
   let cargo_manifest_dir: &str = env!("CARGO_MANIFEST_DIR");
 
-  let mut path = PathBuf::from(cargo_manifest_dir);
+  let mut path: PathBuf = PathBuf::from(cargo_manifest_dir);
 
   path.push("data.csv");
 
-  let file = File::open(path)?;
+  let file: File = File::open(path)?;
 
-  let mut reader = Reader::from_reader(file);
+  let mut reader: Reader<File> = Reader::from_reader(file);
 
   reader.records().collect()
 }
