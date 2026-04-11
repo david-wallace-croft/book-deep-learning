@@ -41,10 +41,12 @@ members = [
   "ch3-pr3",
   "ch3-pr4",
   "ch3-pr5",
+  "ch4-p61",
 ]
 
 [workspace.dependencies]
 autograd = "=1.1.1"
+csv = "1.4.0"
 linfa = "=0.8.1"
 # ndarray 0.17 is incompatible with linfa 0.8
 ndarray = "=0.16.1"
