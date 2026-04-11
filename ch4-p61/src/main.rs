@@ -23,7 +23,7 @@ fn read_records() -> Result<Vec<StringRecord>, Error> {
 
   let mut reader = Reader::from_reader(file);
 
-  reader.records().into_iter().collect()
+  reader.records().collect()
 }
 
 #[cfg(test)]
