@@ -4,7 +4,7 @@ description = "Code adapted from 'Deep Learning with Rust' by Mehrdad Maleki"
 edition = "2024"
 homepage = "https://www.CroftSoft.com/"
 license = "MIT"
-name = "ch2-p027"
+name = "ch4-pr2"
 publish = false
 readme = "README.md"
 repository = "https://github.com/david-wallace-croft/book-deep-learning"
@@ -12,6 +12,6 @@ rust-version = "1.94.1"
 version = "0.0.0-SNAPSHOT"
 
 [dependencies]
-linfa = { workspace = true }
-# ndarray 0.17 is incompatible with linfa 0.8
-ndarray = "=0.16.1"
+ndarray = { workspace = true }
+ndarray-rand = { workspace = true }
+rayon = { workspace = true }

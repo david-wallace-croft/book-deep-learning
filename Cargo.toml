@@ -44,14 +44,15 @@ members = [
   "ch4-p061",
   "ch4-p062",
   "ch4-pr1",
+  "ch4-pr2",
 ]
 
 [workspace.dependencies]
 autograd = "=1.1.1"
-csv = "1.4.0"
+csv = "=1.4.0"
 linfa = "=0.8.1"
-# ndarray 0.17 is incompatible with linfa 0.8
-ndarray = "=0.16.1"
-rayon = "1.11.0"
+ndarray = "=0.17.2"
+ndarray-rand = "=0.16.0"
+rayon = "=1.12.0"
 tch = "=0.24.0"
-tokio = "1.50.0"
+tokio = "=1.51.1"
