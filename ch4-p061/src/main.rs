@@ -1,4 +1,4 @@
-use ::csv::{Error, Reader, StringRecord};
+use ::csv::{Error, Reader, StringRecord, StringRecordsIter};
 use ::std::fs::File;
 use ::std::path::PathBuf;
 
@@ -23,7 +23,9 @@ fn read_records() -> Result<Vec<StringRecord>, Error> {
 
   let mut reader: Reader<File> = Reader::from_reader(file);
 
-  reader.records().collect()
+  let string_records_iter: StringRecordsIter<'_, File> = reader.records();
+
+  string_records_iter.collect()
 }
 
 #[cfg(test)]
