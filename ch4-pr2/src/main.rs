@@ -14,12 +14,12 @@ fn main() {
   let array_base_0: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> =
     Array::random((N_FULL, N_FULL), uniform);
 
-  let array_base_1: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> =
-    Array::random((N_FULL, N_FULL), uniform);
+  // let array_base_1: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> =
+  //   Array::random((N_FULL, N_FULL), uniform);
 
-  println!("{:6.4}", array_base_0);
+  // println!("{:6.4}", array_base_0);
 
-  println!("{:6.4}", array_base_1);
+  // println!("{:6.4}", array_base_1);
 
   let c0: ArrayBase<ViewRepr<&f64>, _, f64> = array_base_0.slice(s![
     0..N_HALF,
@@ -31,20 +31,24 @@ fn main() {
     0..N_HALF,
   ]);
 
-  let c2: ArrayBase<ViewRepr<&f64>, _, f64> = array_base_0.slice(s![
-    0..N_HALF,
-    N_HALF..N_FULL,
-  ]);
+  // let c2: ArrayBase<ViewRepr<&f64>, _, f64> = array_base_0.slice(s![
+  //   0..N_HALF,
+  //   N_HALF..N_FULL,
+  // ]);
 
-  let c3: ArrayBase<ViewRepr<&f64>, _, f64> = array_base_0.slice(s![
-    N_HALF..N_FULL,
-    N_HALF..N_FULL,
-  ]);
+  // let c3: ArrayBase<ViewRepr<&f64>, _, f64> = array_base_0.slice(s![
+  //   N_HALF..N_FULL,
+  //   N_HALF..N_FULL,
+  // ]);
 
-  println!("{:6.4}", c0);
-  println!("{:6.4}", c1);
-  println!("{:6.4}", c2);
-  println!("{:6.4}", c3);
+  // println!("{:6.4}", c0);
+  // println!("{:6.4}", c1);
+  // println!("{:6.4}", c2);
+  // println!("{:6.4}", c3);
+
+  let product: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> = c0.dot(&c1);
+
+  println!("{product:6.4}");
 }
 
 // #[cfg(test)]
