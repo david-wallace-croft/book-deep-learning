@@ -1,40 +1,58 @@
-use ::ndarray::{Array, ArrayBase, Dim, OwnedRepr, ViewRepr, s};
+use ::ndarray::{Array, ArrayBase, Dim, OwnedRepr, ViewRepr, array, s};
 use ::ndarray_rand::RandomExt;
 use ::ndarray_rand::rand_distr::Uniform;
 use ::ndarray_rand::rand_distr::uniform::Error;
 use ndarray::{Axis, concatenate};
 
-const N_FULL: usize = 4;
+const N_FULL: usize = 2;
 const N_HALF: usize = N_FULL / 2;
 
 fn main() {
-  let result: Result<Uniform<f64>, Error> = Uniform::new(0., 1.);
+  // let result: Result<Uniform<f64>, Error> = Uniform::new(0., 1.);
 
-  let uniform: Uniform<f64> = result.unwrap();
+  // let uniform: Uniform<f64> = result.unwrap();
 
-  let a0: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> =
-    Array::random((N_FULL, N_FULL), uniform);
+  // let a0: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> =
+  //   Array::random((N_FULL, N_FULL), uniform);
 
-  let a1: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> =
-    Array::random((N_FULL, N_FULL), uniform);
+  // let a1: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> =
+  //   Array::random((N_FULL, N_FULL), uniform);
 
-  // println!("{a0:6.4}");
+  let a0 = array![
+    [
+      0., 1.,
+    ],
+    [
+      2., 3.,
+    ]
+  ];
 
-  // println!("{a1:6.4}");
+  let a1 = array![
+    [
+      4., 5.
+    ],
+    [
+      6., 7.
+    ]
+  ];
+
+  println!("{a0:6.4}");
+
+  println!("{a1:6.4}");
 
   let a0_00: ArrayBase<ViewRepr<&f64>, _, f64> = a0.slice(s![
     0..N_HALF,
     0..N_HALF,
   ]);
 
-  let a0_10: ArrayBase<ViewRepr<&f64>, _, f64> = a0.slice(s![
-    N_HALF..N_FULL,
-    0..N_HALF,
-  ]);
-
   let a0_01: ArrayBase<ViewRepr<&f64>, _, f64> = a0.slice(s![
     0..N_HALF,
     N_HALF..N_FULL,
+  ]);
+
+  let a0_10: ArrayBase<ViewRepr<&f64>, _, f64> = a0.slice(s![
+    N_HALF..N_FULL,
+    0..N_HALF,
   ]);
 
   let a0_11: ArrayBase<ViewRepr<&f64>, _, f64> = a0.slice(s![
@@ -47,20 +65,29 @@ fn main() {
     0..N_HALF,
   ]);
 
-  let a1_10: ArrayBase<ViewRepr<&f64>, _, f64> = a1.slice(s![
-    N_HALF..N_FULL,
-    0..N_HALF,
-  ]);
-
   let a1_01: ArrayBase<ViewRepr<&f64>, _, f64> = a1.slice(s![
     0..N_HALF,
     N_HALF..N_FULL,
+  ]);
+
+  let a1_10: ArrayBase<ViewRepr<&f64>, _, f64> = a1.slice(s![
+    N_HALF..N_FULL,
+    0..N_HALF,
   ]);
 
   let a1_11: ArrayBase<ViewRepr<&f64>, _, f64> = a1.slice(s![
     N_HALF..N_FULL,
     N_HALF..N_FULL,
   ]);
+
+  println!("{a0_00:6.4}");
+  println!("{a0_01:6.4}");
+  println!("{a0_10:6.4}");
+  println!("{a0_11:6.4}");
+  println!("{a1_00:6.4}");
+  println!("{a1_01:6.4}");
+  println!("{a1_10:6.4}");
+  println!("{a1_11:6.4}");
 
   let b_00: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> = a0_00.dot(&a1_00);
 
@@ -70,17 +97,22 @@ fn main() {
 
   let b_11: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> = a0_11.dot(&a1_11);
 
+  println!("{b_00:6.4}");
+  println!("{b_01:6.4}");
+  println!("{b_10:6.4}");
+  println!("{b_11:6.4}");
+
   // TODO: Check that I am concatenating in the right order
 
-  let c = concatenate!(Axis(0), b_00, b_01);
+  let c = concatenate!(Axis(1), b_00, b_01);
 
-  let d = concatenate!(Axis(0), b_10, b_11);
+  let d = concatenate!(Axis(1), b_10, b_11);
 
   println!("{c:6.4}");
 
   println!("{d:6.4}");
 
-  let e = concatenate!(Axis(1), c, d);
+  let e = concatenate!(Axis(0), c, d);
 
   println!("{e:6.4}");
 }
