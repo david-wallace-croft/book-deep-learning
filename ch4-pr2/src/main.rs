@@ -4,7 +4,7 @@ use ::ndarray_rand::rand_distr::Uniform;
 use ::ndarray_rand::rand_distr::uniform::Error;
 use ndarray::{Axis, concatenate};
 
-const N_FULL: usize = 2;
+const N_FULL: usize = 4;
 const N_HALF: usize = N_FULL / 2;
 
 fn main() {
@@ -20,24 +20,38 @@ fn main() {
 
   let a0 = array![
     [
-      0., 1.,
+      0., 0., 1., 1.,
     ],
     [
-      2., 3.,
+      2., 2., 3., 3.,
+    ],
+    [
+      4., 4., 5., 5.
+    ],
+    [
+      6., 6., 7., 7.
     ]
   ];
 
   let a1 = array![
     [
-      4., 5.
+      0., 0., 1., 1.,
     ],
     [
-      6., 7.
+      2., 2., 3., 3.,
+    ],
+    [
+      4., 4., 5., 5.
+    ],
+    [
+      6., 6., 7., 7.
     ]
   ];
 
+  println!("--- a0");
   println!("{a0:6.4}");
 
+  println!("--- a1");
   println!("{a1:6.4}");
 
   let a0_00: ArrayBase<ViewRepr<&f64>, _, f64> = a0.slice(s![
@@ -80,10 +94,12 @@ fn main() {
     N_HALF..N_FULL,
   ]);
 
+  println!("--- a0_##");
   println!("{a0_00:6.4}");
   println!("{a0_01:6.4}");
   println!("{a0_10:6.4}");
   println!("{a0_11:6.4}");
+  println!("--- a1_##");
   println!("{a1_00:6.4}");
   println!("{a1_01:6.4}");
   println!("{a1_10:6.4}");
@@ -97,23 +113,23 @@ fn main() {
 
   let b_11: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> = a0_11.dot(&a1_11);
 
+  println!("--- b_##");
   println!("{b_00:6.4}");
   println!("{b_01:6.4}");
   println!("{b_10:6.4}");
   println!("{b_11:6.4}");
 
-  // TODO: Check that I am concatenating in the right order
-
   let c = concatenate!(Axis(1), b_00, b_01);
-
   let d = concatenate!(Axis(1), b_10, b_11);
 
+  println!("--- c");
   println!("{c:6.4}");
-
+  println!("--- d");
   println!("{d:6.4}");
 
   let e = concatenate!(Axis(0), c, d);
 
+  println!("--- e");
   println!("{e:6.4}");
 }
 
