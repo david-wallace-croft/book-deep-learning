@@ -118,6 +118,7 @@ fn problem_4_2(
   println!("--- b");
   println!("{b:?}");
 
+  #[expect(clippy::get_first)]
   let b_00: &Matrix = &(b.get(0).unwrap().1);
 
   let b_01: &Matrix = &(b.get(1).unwrap().1);
