@@ -4,14 +4,15 @@ use ::ndarray::{
 use ::ndarray_rand::RandomExt;
 use ::ndarray_rand::rand_distr::Uniform;
 use ::ndarray_rand::rand_distr::uniform::Error;
-
-const N_FULL: usize = 4;
+use ::rayon::prelude::*;
 
 type Matrix = ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64>;
 
 type View<'a> = ArrayBase<ViewRepr<&'a f64>, Dim<[usize; 2]>, f64>;
 
 fn main() {
+  const N_FULL: usize = 4;
+
   let result: Result<Uniform<f64>, Error> = Uniform::new(0., 1.);
 
   let uniform: Uniform<f64> = result.unwrap();
@@ -95,13 +96,35 @@ fn problem_4_2(
   println!("{a1_10:6.4}");
   println!("{a1_11:6.4}");
 
-  let b_00: Matrix = a0_00.dot(&a1_00);
+  let a: [(View, View); 4] = [
+    (a0_00, a1_00),
+    (a0_01, a1_01),
+    (a0_10, a1_10),
+    (a0_11, a1_11),
+  ];
 
-  let b_01: Matrix = a0_01.dot(&a1_01);
+  // TODO: Will this always be collected in the same order as the input?
 
-  let b_10: Matrix = a0_10.dot(&a1_10);
+  let b: Vec<(usize, Matrix)> = a
+    .par_iter()
+    .enumerate()
+    .map(
+      |(index, (a0, a1)): (usize, &(View, View))| -> (usize, Matrix) {
+        (index, a0.dot(a1))
+      },
+    )
+    .collect();
 
-  let b_11: Matrix = a0_11.dot(&a1_11);
+  println!("--- b");
+  println!("{b:?}");
+
+  let b_00: &Matrix = &(b.get(0).unwrap().1);
+
+  let b_01: &Matrix = &(b.get(1).unwrap().1);
+
+  let b_10: &Matrix = &(b.get(2).unwrap().1);
+
+  let b_11: &Matrix = &(b.get(3).unwrap().1);
 
   println!("--- b_##");
   println!("{b_00:6.4}");
@@ -109,8 +132,8 @@ fn problem_4_2(
   println!("{b_10:6.4}");
   println!("{b_11:6.4}");
 
-  let c = concatenate!(Axis(1), b_00, b_01);
-  let d = concatenate!(Axis(1), b_10, b_11);
+  let c = concatenate!(Axis(1), *b_00, *b_01);
+  let d = concatenate!(Axis(1), *b_10, *b_11);
 
   println!("--- c");
   println!("{c:6.4}");
