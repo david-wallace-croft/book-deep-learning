@@ -5,10 +5,7 @@ use ::ndarray_rand::RandomExt;
 use ::ndarray_rand::rand_distr::Uniform;
 use ::ndarray_rand::rand_distr::uniform::Error;
 
-// TODO: Make n a variable extracted from the inputs
 const N_FULL: usize = 4;
-
-const N_HALF: usize = N_FULL / 2;
 
 type Matrix = ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64>;
 
@@ -39,44 +36,52 @@ fn problem_4_2(
   a0: Matrix,
   a1: Matrix,
 ) -> Matrix {
+  let matrix_dim: (usize, usize) = a0.dim();
+
+  // TODO: check that both matrices are N squared or set the type if possible
+
+  let n_full = matrix_dim.0;
+
+  let n_half: usize = n_full / 2;
+
   let a0_00: View = a0.slice(s![
-    0..N_HALF,
-    0..N_HALF,
+    0..n_half,
+    0..n_half,
   ]);
 
   let a0_01: View = a0.slice(s![
-    0..N_HALF,
-    N_HALF..N_FULL,
+    0..n_half,
+    n_half..n_full,
   ]);
 
   let a0_10: View = a0.slice(s![
-    N_HALF..N_FULL,
-    0..N_HALF,
+    n_half..n_full,
+    0..n_half,
   ]);
 
   let a0_11: View = a0.slice(s![
-    N_HALF..N_FULL,
-    N_HALF..N_FULL,
+    n_half..n_full,
+    n_half..n_full,
   ]);
 
   let a1_00: View = a1.slice(s![
-    0..N_HALF,
-    0..N_HALF,
+    0..n_half,
+    0..n_half,
   ]);
 
   let a1_01: View = a1.slice(s![
-    0..N_HALF,
-    N_HALF..N_FULL,
+    0..n_half,
+    n_half..n_full,
   ]);
 
   let a1_10: View = a1.slice(s![
-    N_HALF..N_FULL,
-    0..N_HALF,
+    n_half..n_full,
+    0..n_half,
   ]);
 
   let a1_11: View = a1.slice(s![
-    N_HALF..N_FULL,
-    N_HALF..N_FULL,
+    n_half..n_full,
+    n_half..n_full,
   ]);
 
   println!("--- a0_##");
@@ -122,7 +127,7 @@ mod test {
 
   #[test]
   fn test() {
-    let a0 = array![
+    let a0: Matrix = array![
       [
         0., 0., 1., 1.,
       ],
@@ -137,7 +142,7 @@ mod test {
       ]
     ];
 
-    let a1 = array![
+    let a1: Matrix = array![
       [
         0., 0., 1., 1.,
       ],
