@@ -5,13 +5,16 @@ use ::ndarray_rand::RandomExt;
 use ::ndarray_rand::rand_distr::Uniform;
 use ::ndarray_rand::rand_distr::uniform::Error;
 use ::rayon::prelude::*;
+use ::std::time::{Duration, Instant};
 
 type Matrix = ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64>;
 
 type View<'a> = ArrayBase<ViewRepr<&'a f64>, Dim<[usize; 2]>, f64>;
 
 fn main() {
-  const N_FULL: usize = 4;
+  // This is roughly where the break-even point is between serial and parallel
+  // performance on my computer.
+  const N_FULL: usize = 400;
 
   let result: Result<Uniform<f64>, Error> = Uniform::new(0., 1.);
 
@@ -21,21 +24,67 @@ fn main() {
 
   let a1: Matrix = Array::random((N_FULL, N_FULL), uniform);
 
-  println!("--- a0");
-  println!("{a0:6.4}");
+  // println!("--- a0");
+  // println!("{a0:6.4}");
 
-  println!("--- a1");
-  println!("{a1:6.4}");
+  // println!("--- a1");
+  // println!("{a1:6.4}");
 
-  let e = problem_4_2(a0, a1);
+  let start: Instant = Instant::now();
 
-  println!("--- e");
-  println!("{e:6.4}");
+  let _e = problem_4_2(&a0, &a1, false);
+
+  // println!("--- e");
+  // println!("{e:6.4}");
+
+  let duration: Duration = start.elapsed();
+
+  println!("--- serial duration");
+  println!("{duration:?}");
+
+  let start: Instant = Instant::now();
+
+  let _e = problem_4_2(&a0, &a1, true);
+
+  // println!("--- e");
+  // println!("{e:6.4}");
+
+  let duration: Duration = start.elapsed();
+
+  // Use the release flag when comparing performance:
+  // cargo run -p ch4-pr2 --release
+  println!("--- parallel duration");
+  println!("{duration:?}");
+}
+
+fn dot_parallel(a: [(View, View); 4]) -> Vec<(usize, Matrix)> {
+  // TODO: Will this always be collected in the same order as the input?
+
+  a.par_iter()
+    .enumerate()
+    .map(
+      |(index, (a0, a1)): (usize, &(View, View))| -> (usize, Matrix) {
+        (index, a0.dot(a1))
+      },
+    )
+    .collect()
+}
+
+fn dot_serial(a: [(View, View); 4]) -> Vec<(usize, Matrix)> {
+  a.iter()
+    .enumerate()
+    .map(
+      |(index, (a0, a1)): (usize, &(View, View))| -> (usize, Matrix) {
+        (index, a0.dot(a1))
+      },
+    )
+    .collect()
 }
 
 fn problem_4_2(
-  a0: Matrix,
-  a1: Matrix,
+  a0: &Matrix,
+  a1: &Matrix,
+  use_parallel: bool,
 ) -> Matrix {
   let matrix_dim: (usize, usize) = a0.dim();
 
@@ -85,16 +134,16 @@ fn problem_4_2(
     n_half..n_full,
   ]);
 
-  println!("--- a0_##");
-  println!("{a0_00:6.4}");
-  println!("{a0_01:6.4}");
-  println!("{a0_10:6.4}");
-  println!("{a0_11:6.4}");
-  println!("--- a1_##");
-  println!("{a1_00:6.4}");
-  println!("{a1_01:6.4}");
-  println!("{a1_10:6.4}");
-  println!("{a1_11:6.4}");
+  // println!("--- a0_##");
+  // println!("{a0_00:6.4}");
+  // println!("{a0_01:6.4}");
+  // println!("{a0_10:6.4}");
+  // println!("{a0_11:6.4}");
+  // println!("--- a1_##");
+  // println!("{a1_00:6.4}");
+  // println!("{a1_01:6.4}");
+  // println!("{a1_10:6.4}");
+  // println!("{a1_11:6.4}");
 
   let a: [(View, View); 4] = [
     (a0_00, a1_00),
@@ -103,20 +152,14 @@ fn problem_4_2(
     (a0_11, a1_11),
   ];
 
-  // TODO: Will this always be collected in the same order as the input?
+  let b: Vec<(usize, Matrix)> = if use_parallel {
+    dot_parallel(a)
+  } else {
+    dot_serial(a)
+  };
 
-  let b: Vec<(usize, Matrix)> = a
-    .par_iter()
-    .enumerate()
-    .map(
-      |(index, (a0, a1)): (usize, &(View, View))| -> (usize, Matrix) {
-        (index, a0.dot(a1))
-      },
-    )
-    .collect();
-
-  println!("--- b");
-  println!("{b:?}");
+  // println!("--- b");
+  // println!("{b:?}");
 
   #[expect(clippy::get_first)]
   let b_00: &Matrix = &(b.get(0).unwrap().1);
@@ -127,19 +170,19 @@ fn problem_4_2(
 
   let b_11: &Matrix = &(b.get(3).unwrap().1);
 
-  println!("--- b_##");
-  println!("{b_00:6.4}");
-  println!("{b_01:6.4}");
-  println!("{b_10:6.4}");
-  println!("{b_11:6.4}");
+  // println!("--- b_##");
+  // println!("{b_00:6.4}");
+  // println!("{b_01:6.4}");
+  // println!("{b_10:6.4}");
+  // println!("{b_11:6.4}");
 
   let c = concatenate!(Axis(1), *b_00, *b_01);
   let d = concatenate!(Axis(1), *b_10, *b_11);
 
-  println!("--- c");
-  println!("{c:6.4}");
-  println!("--- d");
-  println!("{d:6.4}");
+  // println!("--- c");
+  // println!("{c:6.4}");
+  // println!("--- d");
+  // println!("{d:6.4}");
 
   concatenate!(Axis(0), c, d)
 }
@@ -196,7 +239,7 @@ mod test {
       ]
     ];
 
-    let actual: Matrix = problem_4_2(a0, a1);
+    let actual: Matrix = problem_4_2(&a0, &a1, true);
 
     assert_eq!(actual, expected);
   }
