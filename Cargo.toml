@@ -47,6 +47,7 @@ members = [
   "ch4-pr2",
   "ch5-p070",
   "ch5-p071",
+  "ch5-p073",
 ]
 
 [workspace.dependencies]
@@ -55,6 +56,8 @@ csv = "=1.4.0"
 linfa = "=0.8.1"
 ndarray = "=0.17.2"
 ndarray-rand = "=0.16.0"
+rand = "=0.10.1"
+rand_distr = "=0.6.0"
 rayon = "=1.12.0"
 tch = "=0.24.0"
 tokio = "=1.52.1"
