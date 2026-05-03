@@ -234,6 +234,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ch5-p074"
+version = "0.0.0-SNAPSHOT"
+dependencies = [
+ "ndarray 0.17.2",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+]
+
+[[package]]
 name = "chacha20"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
