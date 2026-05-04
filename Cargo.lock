@@ -41,6 +41,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
+name = "autodiff"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "599c1cad7c79089d8f05db145c7207ad0e99a512244ac4b1db3aeb00f2d4c1e1"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "autograd"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -240,6 +249,13 @@ dependencies = [
  "ndarray 0.17.2",
  "rand 0.10.1",
  "rand_distr 0.6.0",
+]
+
+[[package]]
+name = "ch5-p075-a"
+version = "0.0.0-SNAPSHOT"
+dependencies = [
+ "autodiff",
 ]
 
 [[package]]

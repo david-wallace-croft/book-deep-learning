@@ -49,9 +49,11 @@ members = [
   "ch5-p071",
   "ch5-p073",
   "ch5-p074",
+  "ch5-p075-a",
 ]
 
 [workspace.dependencies]
+autodiff = "=0.7.0"
 autograd = "=1.1.1"
 csv = "=1.4.0"
 linfa = "=0.8.1"
@@ -61,4 +63,4 @@ rand = "=0.10.1"
 rand_distr = "=0.6.0"
 rayon = "=1.12.0"
 tch = "=0.24.0"
-tokio = "=1.52.1"
+tokio = "=1.52.2"
