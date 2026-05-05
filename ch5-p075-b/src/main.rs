@@ -5,7 +5,7 @@ fn main() {
 
   let df = grad(
     f,
-    &vec![
+    &[
       1., 2.,
     ],
   );
