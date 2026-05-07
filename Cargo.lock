@@ -252,14 +252,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "ch5-p075-a"
+name = "ch5-p078-a"
 version = "0.0.0-SNAPSHOT"
 dependencies = [
  "autodiff",
 ]
 
 [[package]]
-name = "ch5-p075-b"
+name = "ch5-p078-b"
 version = "0.0.0-SNAPSHOT"
 dependencies = [
  "autodiff",
