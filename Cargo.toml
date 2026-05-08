@@ -51,6 +51,7 @@ members = [
   "ch5-p074",
   "ch5-p078-a",
   "ch5-p078-b",
+  "ch5-p079",
 ]
 
 [workspace.dependencies]
@@ -64,4 +65,4 @@ rand = "=0.10.1"
 rand_distr = "=0.6.0"
 rayon = "=1.12.0"
 tch = "=0.24.0"
-tokio = "=1.52.2"
+tokio = "=1.52.3"
