@@ -162,6 +162,7 @@ fn main() {
 
       let mut idx = 0;
 
+      #[expect(clippy::needless_range_loop)]
       for i in 0..hidden_size {
         for j in 0..input_size {
           w1[i][j] -= lr * grads[idx];
@@ -170,12 +171,14 @@ fn main() {
         }
       }
 
+      #[expect(clippy::needless_range_loop)]
       for i in 0..hidden_size {
         b1[i] -= lr * grads[idx];
 
         idx += 1;
       }
 
+      #[expect(clippy::needless_range_loop)]
       for i in 0..hidden_size {
         w2[i] -= lr * grads[idx];
 
