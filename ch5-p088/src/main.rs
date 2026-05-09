@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
   root.fill(&WHITE)?;
 
-  let max_loss = loss_values.iter().cloned().fold(0. / 0., f64::max);
+  let max_loss = loss_values.iter().cloned().fold(f64::NAN, f64::max);
 
   let mut chart = ChartBuilder::on(&root)
     .caption("Simulated Training Loss", ("sans-serif", 10))
@@ -55,14 +55,14 @@ fn main() -> Result<(), Box<dyn Error>> {
           (x, y),
           (x + 20, y),
         ],
-        &BLUE,
+        BLUE,
       )
     });
 
   chart
     .configure_series_labels()
-    .background_style(&WHITE.mix(0.8))
-    .border_style(&BLACK)
+    .background_style(WHITE.mix(0.8))
+    .border_style(BLACK)
     .draw()?;
 
   println!("Loss plot saved to training_loss.png");
