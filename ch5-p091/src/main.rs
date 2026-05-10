@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
   chart
     .configure_series_labels()
-    .border_style(&BLACK)
+    .border_style(BLACK)
     .background_style(WHITE.mix(0.8))
     .draw()?;
 
