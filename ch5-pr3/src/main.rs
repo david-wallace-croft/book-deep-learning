@@ -11,7 +11,7 @@ fn main() {
 
   let w: Vec<FT<f64>> = W.iter().map(|w| FT::cst(*w)).collect();
 
-  let x: Vec<FT<f64>> = X.iter().map(|x| FT::var(*x)).collect();
+  let x: Vec<FT<f64>> = X.iter().map(|x| FT::cst(*x)).collect();
 
   let f =
     |x: &[FT<f64>]| -> FT<f64> { w[0] * x[0] + w[1] * x[1] + w[2] * x[2] };
@@ -26,9 +26,9 @@ fn main() {
 
   println!("y = {:.1}", y.value());
 
-  println!("\u{2207} y/x = {:?}", g);
+  println!("\u{2207}\u{2093}y = {:?}", g);
 
-  println!("dy/dx1 = {}", g[1]);
+  println!("\u{2202}y/\u{2202}x\u{2081} = {}", g[1]);
 }
 
 fn relu(x: FT<f64>) -> FT<f64> {
