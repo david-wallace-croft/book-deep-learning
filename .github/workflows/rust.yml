@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  LIBTORCH_BYPASS_VERSION_CHECK: 1
 
 jobs:
   test:
