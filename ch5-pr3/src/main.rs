@@ -13,8 +13,15 @@ fn main() {
 
   let x: Vec<FT<f64>> = X.iter().map(|x| FT::cst(*x)).collect();
 
-  let f =
-    |x: &[FT<f64>]| -> FT<f64> { w[0] * x[0] + w[1] * x[1] + w[2] * x[2] };
+  // let f =
+  //   |x: &[FT<f64>]| -> FT<f64> { w[0] * x[0] + w[1] * x[1] + w[2] * x[2] };
+
+  let f = |x: &[FT<f64>]| -> FT<f64> {
+    w.iter()
+      .zip(x.iter())
+      .map(|(w, x): (&FT<f64>, &FT<f64>)| -> FT<f64> { *w * *x })
+      .sum()
+  };
 
   let z = f(&x);
 
