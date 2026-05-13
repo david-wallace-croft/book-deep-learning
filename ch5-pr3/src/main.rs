@@ -23,7 +23,7 @@ fn main() {
       .sum()
   };
 
-  let z = f(&x);
+  let z: FT<f64> = f(&x);
 
   let y: FT<f64> = relu(z);
 
