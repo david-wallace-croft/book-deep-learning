@@ -13,19 +13,17 @@ fn main() {
 
   let x: Vec<FT<f64>> = X.iter().map(|x| FT::cst(*x)).collect();
 
-  // let f =
-  //   |x: &[FT<f64>]| -> FT<f64> { w[0] * x[0] + w[1] * x[1] + w[2] * x[2] };
-
   let f = |x: &[FT<f64>]| -> FT<f64> {
-    w.iter()
+    let z: FT<f64> = w
+      .iter()
       .zip(x.iter())
       .map(|(w, x): (&FT<f64>, &FT<f64>)| -> FT<f64> { *w * *x })
-      .sum()
+      .sum();
+
+    relu(z)
   };
 
-  let z: FT<f64> = f(&x);
-
-  let y: FT<f64> = relu(z);
+  let y: FT<f64> = f(&x);
 
   let g: Vec<f64> = grad(f, &X);
 
