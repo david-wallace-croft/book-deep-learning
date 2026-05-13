@@ -1,0 +1,40 @@
+use ::autodiff::*;
+
+fn main() {
+  const W: [f64; 3] = [
+    0.1, 0.3, 0.6,
+  ];
+
+  const X: [f64; 3] = [
+    1., 2., -1.,
+  ];
+
+  let w: Vec<FT<f64>> = W.iter().map(|w| FT::cst(*w)).collect();
+
+  let x: Vec<FT<f64>> = X.iter().map(|x| FT::var(*x)).collect();
+
+  let f =
+    |x: &[FT<f64>]| -> FT<f64> { w[0] * x[0] + w[1] * x[1] + w[2] * x[2] };
+
+  let z = f(&x);
+
+  let y: FT<f64> = relu(z);
+
+  let g: Vec<f64> = grad(f, &X);
+
+  println!("(y, dy) = {}", y);
+
+  println!("y = {:.1}", y.value());
+
+  println!("\u{2207} y/x = {:?}", g);
+
+  println!("dy/dx1 = {}", g[1]);
+}
+
+fn relu(x: FT<f64>) -> FT<f64> {
+  if x.x > 0. {
+    x
+  } else {
+    FT::cst(0.)
+  }
+}
