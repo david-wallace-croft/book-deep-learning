@@ -57,6 +57,7 @@ members = [
   "ch5-pr1",
   "ch5-pr2",
   "ch5-pr3",
+  "ch5-pr4",
 ]
 
 [workspace.dependencies]
