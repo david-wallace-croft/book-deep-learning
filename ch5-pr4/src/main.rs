@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     .margin(20)
     .x_label_area_size(40)
     .y_label_area_size(50)
-    .build_cartesian_2d(-6.0..6.0, -6.0..6.0)?;
+    .build_cartesian_2d(-6.0..6.0, -1.0..6.0)?;
 
   chart
     .configure_mesh()
@@ -31,22 +31,22 @@ fn main() -> Result<(), Box<dyn Error>> {
       (-50..=50).map(|x| x as f64 / 10.0).map(|x| (x, relu(x))),
       BLUE,
     ))?
-    .label("Output");
-  // .legend(|(x, y)| {
-  //   PathElement::new(
-  //     vec![
-  //       (x, y),
-  //       (x + 20, y),
-  //     ],
-  //     BLUE,
-  //   )
-  // });
+    .label("Output")
+    .legend(|(x, y)| {
+      PathElement::new(
+        vec![
+          (x, y),
+          (x + 20, y),
+        ],
+        BLUE,
+      )
+    });
 
-  // chart
-  //   .configure_series_labels()
-  //   .background_style(WHITE.mix(0.8))
-  //   .border_style(BLACK)
-  //   .draw()?;
+  chart
+    .configure_series_labels()
+    .background_style(WHITE.mix(0.8))
+    .border_style(BLACK)
+    .draw()?;
 
   Ok(())
 }
