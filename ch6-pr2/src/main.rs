@@ -3,7 +3,6 @@ use ::rand_distr::{Distribution, Normal};
 use ::std::sync::{Arc, Barrier};
 use ::std::thread::{self, JoinHandle};
 use ::std::time::Duration;
-use std::u64;
 
 const DELAY_MEAN: f64 = 100.;
 const DELAY_SDEV: f64 = 20.;
