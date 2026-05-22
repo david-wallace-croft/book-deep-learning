@@ -13,9 +13,10 @@ fn main() {
   let barrier: Arc<Barrier> = Arc::new(Barrier::new(LAYER_COUNT));
 
   (1..=LAYER_COUNT)
-    .map(|layer: usize| (layer, barrier.clone()))
-    .map(|(layer, barrier): (usize, Arc<Barrier>)| {
-      thread::spawn(move || compute_layer(barrier, layer))
+    .map(|layer: usize| {
+      let barrier_clone = barrier.clone();
+
+      thread::spawn(move || compute_layer(barrier_clone, layer))
     })
     .collect::<Vec<JoinHandle<()>>>()
     .into_iter()
