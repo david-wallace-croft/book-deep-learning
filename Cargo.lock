@@ -364,6 +364,14 @@ name = "ch6-pr1"
 version = "0.0.0-SNAPSHOT"
 
 [[package]]
+name = "ch6-pr2"
+version = "0.0.0-SNAPSHOT"
+dependencies = [
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+]
+
+[[package]]
 name = "chacha20"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
