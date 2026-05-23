@@ -1,3 +1,5 @@
+#![expect(dead_code)]
+
 fn main() {
   todo!()
 }
@@ -10,8 +12,8 @@ fn binary_cross_entropy(
 }
 
 fn conv2d(
-  input: &Vec<Vec<f32>>,
-  kernel: &Vec<Vec<f32>>,
+  input: &[Vec<f32>],
+  kernel: &[Vec<f32>],
 ) -> Vec<Vec<f32>> {
   let h = input.len();
 
