@@ -379,6 +379,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "ch7-p112"
+version = "0.0.0-SNAPSHOT"
+
+[[package]]
 name = "chacha20"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
