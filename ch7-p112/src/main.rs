@@ -42,6 +42,31 @@ fn conv2d(
   output
 }
 
+fn conv2d_backprop(
+  d_out: &[Vec<f32>],
+  input: &[Vec<f32>],
+  kernel: &mut [Vec<f32>],
+  lr: f32,
+) {
+  let kh = kernel.len();
+
+  let kw = kernel[0].len();
+
+  for m in 0..kh {
+    for n in 0..kw {
+      let mut grad = 0.;
+
+      for i in 0..d_out.len() {
+        for j in 0..d_out[0].len() {
+          grad += input[i + m][j + n] * d_out[i][j];
+        }
+      }
+
+      kernel[m][n] -= lr * grad;
+    }
+  }
+}
+
 fn relu(x: f32) -> f32 {
   if x > 0. {
     x
