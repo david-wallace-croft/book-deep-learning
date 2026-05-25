@@ -67,6 +67,44 @@ fn conv2d_backprop(
   }
 }
 
+fn max_pool2x2(
+  input: &[Vec<f32>]
+) -> (Vec<Vec<f32>>, Vec<Vec<(usize, usize)>>) {
+  let h = input.len() / 2;
+
+  let w = input[0].len() / 2;
+
+  let mut output = vec![vec![0.; w]; h];
+
+  let mut max_pos = vec![vec![(0, 0); w]; h];
+
+  for i in 0..h {
+    for j in 0..w {
+      let mut max_val = f32::MIN;
+
+      let mut pos = (0, 0);
+
+      for m in 0..2 {
+        for n in 0..2 {
+          let val = input[i * 2 + m][j * 2 + n];
+
+          if val > max_val {
+            max_val = val;
+
+            pos = (i * 2 + m, j * 2 + n);
+          }
+        }
+      }
+
+      output[i][j] = max_val;
+
+      max_pos[i][j] = pos;
+    }
+  }
+
+  (output, max_pos)
+}
+
 fn relu(x: f32) -> f32 {
   if x > 0. {
     x
