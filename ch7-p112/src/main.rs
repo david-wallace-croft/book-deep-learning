@@ -67,6 +67,7 @@ fn conv2d_backprop(
   }
 }
 
+#[expect(clippy::type_complexity)]
 fn max_pool2x2(
   input: &[Vec<f32>]
 ) -> (Vec<Vec<f32>>, Vec<Vec<(usize, usize)>>) {
