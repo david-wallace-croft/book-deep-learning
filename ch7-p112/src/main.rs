@@ -105,6 +105,25 @@ fn max_pool2x2(
   (output, max_pos)
 }
 
+fn max_pool2x2_backprop(
+  d_out: &[Vec<f32>],
+  max_pos: &[Vec<(usize, usize)>],
+  h: usize,
+  w: usize,
+) -> Vec<Vec<f32>> {
+  let mut d_input = vec![vec![0.; w]; h];
+
+  for i in 0..d_out.len() {
+    for j in 0..d_out[0].len() {
+      let (mi, mj) = max_pos[i][j];
+
+      d_input[mi][mj] = d_out[i][j];
+    }
+  }
+
+  d_input
+}
+
 fn relu(x: f32) -> f32 {
   if x > 0. {
     x
