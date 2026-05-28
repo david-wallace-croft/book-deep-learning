@@ -43,6 +43,7 @@ fn main() {
     ],
   ];
 
+  #[expect(clippy::useless_vec)]
   let _dataset = vec![
     (cat_image_matrix, 1.),
     (non_cat_image_matrix, 0.),
