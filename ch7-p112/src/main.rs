@@ -1,4 +1,5 @@
 #![expect(dead_code)]
+#![expect(unused_variables)]
 
 fn main() {
   let cat_image_matrix = vec![
@@ -43,11 +44,46 @@ fn main() {
     ],
   ];
 
-  #[expect(clippy::useless_vec)]
-  let _dataset = vec![
+  let dataset = vec![
     (cat_image_matrix, 1.),
     (non_cat_image_matrix, 0.),
   ];
+
+  #[expect(unused_mut)]
+  let mut kernel = vec![
+    vec![
+      0.1, 0.2, -0.1,
+    ],
+    vec![
+      0.0, 0.0, 0.1,
+    ],
+    vec![
+      -0.2, 0., 0.2,
+    ],
+  ];
+
+  let temp_conv = conv2d(&dataset[0].0, &kernel);
+
+  let (temp_pool, _) = max_pool2x2(&temp_conv);
+
+  let flat_len = temp_pool.len() * temp_pool[0].len();
+
+  #[expect(unused_mut)]
+  let mut fc_weights = vec![0.5; flat_len];
+
+  #[expect(unused_mut)]
+  let mut fc_bias = 0.;
+
+  let lr = 0.01;
+
+  for epoch in 0..50 {
+    #[expect(unused_mut)]
+    let mut total_loss = 0.;
+
+    for (image, label) in &dataset {
+      todo!()
+    }
+  }
 
   todo!()
 }
