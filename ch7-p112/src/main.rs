@@ -1,6 +1,7 @@
 #![expect(dead_code)]
 #![expect(unused_variables)]
 
+#[expect(unused_assignments)]
 fn main() {
   let cat_image_matrix = vec![
     vec![
@@ -77,10 +78,34 @@ fn main() {
   let lr = 0.01;
 
   for epoch in 0..50 {
-    #[expect(unused_mut)]
     let mut total_loss = 0.;
 
     for (image, label) in &dataset {
+      let mut conv_out = conv2d(image, &kernel);
+
+      for i in 0..conv_out.len() {
+        for j in 0..conv_out[0].len() {
+          conv_out[i][j] = relu(conv_out[i][j]);
+        }
+      }
+
+      let (pool_out, max_pos) = max_pool2x2(&conv_out);
+
+      let flat = flatten(&pool_out);
+
+      let z: f32 = flat
+        .iter()
+        .zip(fc_weights.iter())
+        .map(|(x, w)| x * w)
+        .sum::<f32>()
+        + fc_bias;
+
+      let y_pred = sigmoid(z);
+
+      let loss = binary_cross_entropy(*label, y_pred);
+
+      total_loss += loss;
+
       todo!()
     }
   }
@@ -149,6 +174,10 @@ fn conv2d_backprop(
       kernel[m][n] -= lr * grad;
     }
   }
+}
+
+fn flatten(matrix: &[Vec<f32>]) -> Vec<f32> {
+  todo!()
 }
 
 #[expect(clippy::type_complexity)]
