@@ -1,7 +1,5 @@
-#![expect(dead_code)]
 #![expect(unused_variables)]
 
-#[expect(unused_assignments)]
 fn main() {
   let cat_image_matrix = vec![
     vec![
@@ -50,7 +48,6 @@ fn main() {
     (non_cat_image_matrix, 0.),
   ];
 
-  #[expect(unused_mut)]
   let mut kernel = vec![
     vec![
       0.1, 0.2, -0.1,
@@ -69,10 +66,8 @@ fn main() {
 
   let flat_len = temp_pool.len() * temp_pool[0].len();
 
-  #[expect(unused_mut)]
   let mut fc_weights = vec![0.5; flat_len];
 
-  #[expect(unused_mut)]
   let mut fc_bias = 0.;
 
   let lr = 0.01;
@@ -106,11 +101,56 @@ fn main() {
 
       total_loss += loss;
 
-      todo!()
+      let dz = y_pred - label;
+
+      for i in 0..fc_weights.len() {
+        fc_weights[i] -= lr * dz * flat[i];
+      }
+
+      fc_bias -= lr * dz;
+
+      let mut d_pool_out = vec![vec![0.; pool_out[0].len()]; pool_out.len()];
+
+      let mut idx = 0;
+
+      #[expect(clippy::needless_range_loop)]
+      for i in 0..pool_out.len() {
+        for j in 0..pool_out[0].len() {
+          d_pool_out[i][j] = dz * fc_weights[idx];
+
+          idx += 1;
+        }
+      }
+
+      let d_conv_out = max_pool2x2_backprop(
+        &d_pool_out,
+        &max_pos,
+        conv_out.len(),
+        conv_out[0].len(),
+      );
+
+      let mut d_conv_out_relu =
+        vec![vec![0.; conv_out[0].len()]; conv_out.len()];
+
+      for i in 0..conv_out.len() {
+        for j in 0..conv_out[0].len() {
+          d_conv_out_relu[i][j] = d_conv_out[i][j] * relu_deriv(conv_out[i][j]);
+        }
+      }
+
+      conv2d_backprop(&d_conv_out_relu, image, &mut kernel, lr);
     }
+
+    println!(
+      "Epoch {}: Loss = {:4}",
+      epoch,
+      total_loss / dataset.len() as f32
+    );
   }
 
-  todo!()
+  println!("Trained kernel: {kernel:?}");
+
+  println!("Trained FC weights: {fc_weights:?}");
 }
 
 fn binary_cross_entropy(
