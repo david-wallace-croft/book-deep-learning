@@ -1,4 +1,4 @@
-#![expect(unused_variables)]
+use std::{iter::FlatMap, slice::Iter};
 
 fn main() {
   let cat_image_matrix = vec![
@@ -217,7 +217,12 @@ fn conv2d_backprop(
 }
 
 fn flatten(matrix: &[Vec<f32>]) -> Vec<f32> {
-  todo!()
+  let row_iter: Iter<'_, Vec<f32>> = matrix.iter();
+
+  let flat_map: FlatMap<Iter<'_, Vec<f32>>, Vec<f32>, _> =
+    row_iter.flat_map(|row: &Vec<f32>| row.clone());
+
+  flat_map.collect()
 }
 
 #[expect(clippy::type_complexity)]
