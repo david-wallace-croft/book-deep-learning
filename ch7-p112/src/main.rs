@@ -43,6 +43,27 @@ fn main() {
     ],
   ];
 
+  let new_image = vec![
+    vec![
+      0., 1., 1., 0., 2., 3.,
+    ],
+    vec![
+      1., 2., 0., 1., 3., 1.,
+    ],
+    vec![
+      0., 1., 1., 0., 2., 2.,
+    ],
+    vec![
+      1., 0., 2., 3., 1., 0.,
+    ],
+    vec![
+      2., 3., 1., 0., 1., 2.,
+    ],
+    vec![
+      0., 1., 0., 2., 3., 1.,
+    ],
+  ];
+
   let dataset = vec![
     (cat_image_matrix, 1.),
     (non_cat_image_matrix, 0.),
@@ -151,6 +172,14 @@ fn main() {
   println!("Trained kernel: {kernel:?}");
 
   println!("Trained FC weights: {fc_weights:?}");
+
+  let prob = predict(&new_image, &kernel, &fc_weights, fc_bias);
+
+  if prob >= 0.5 {
+    println!("Prediction: Cat ({:.2}%)", prob * 100.);
+  } else {
+    println!("Prediction: Not Cat ({:.2}%)", prob * 100.);
+  }
 }
 
 fn binary_cross_entropy(
@@ -281,6 +310,34 @@ fn max_pool2x2_backprop(
   }
 
   d_input
+}
+
+fn predict(
+  image: &[Vec<f32>],
+  kernel: &[Vec<f32>],
+  fc_weights: &[f32],
+  fc_bias: f32,
+) -> f32 {
+  let mut conv_out = conv2d(image, kernel);
+
+  for row in conv_out.iter_mut() {
+    for val in row.iter_mut() {
+      *val = relu(*val);
+    }
+  }
+
+  let (pool_out, _) = max_pool2x2(&conv_out);
+
+  let flat = flatten(&pool_out);
+
+  let z: f32 = flat
+    .iter()
+    .zip(fc_weights.iter())
+    .map(|(x, w)| x * w)
+    .sum::<f32>()
+    + fc_bias;
+
+  sigmoid(z)
 }
 
 fn relu(x: f32) -> f32 {
