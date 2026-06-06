@@ -1,4 +1,3 @@
-#![expect(dead_code)]
 #![expect(unused_mut)]
 #![expect(unused_variables)]
 
@@ -31,6 +30,31 @@ fn main() -> Result<(), TchError> {
   let wy: Linear = nn::linear(root / "wy", hidden, vocab, Default::default());
 
   let mut opt: Optimizer = Adam::default().build(&vs, 1e-3)?;
+
+  let (_x_idx, y_idx, x_oh) = make_batch(batch, t_steps, vocab, device);
+
+  let mut h = Tensor::zeros(
+    [
+      batch, hidden,
+    ],
+    (Kind::Float, device),
+  );
+
+  let mut logits_per_t: Vec<Tensor> = Vec::with_capacity(t_steps as usize);
+
+  for t in 0..t_steps {
+    let x_t = x_oh.narrow(1, t, 1).squeeze_dim(1);
+
+    let a = x_t.apply(&wx) + h.apply(&wh);
+
+    h = a.tanh();
+
+    let logits_t = h.apply(&wy);
+
+    logits_per_t.push(logits_t);
+  }
+
+  let logits = Tensor::stack(&logits_per_t, 1);
 
   todo!()
 }
