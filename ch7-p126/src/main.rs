@@ -1,4 +1,3 @@
-#![expect(unused_mut)]
 #![expect(unused_variables)]
 
 use ::tch::nn::{
@@ -55,6 +54,15 @@ fn main() -> Result<(), TchError> {
   }
 
   let logits = Tensor::stack(&logits_per_t, 1);
+
+  let loss = logits
+    .reshape([
+      batch * t_steps,
+      vocab,
+    ])
+    .cross_entropy_for_logits(&y_idx.reshape([batch * t_steps]));
+
+  opt.backward_step(&loss);
 
   todo!()
 }
