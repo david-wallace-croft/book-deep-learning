@@ -1,7 +1,8 @@
-use ::ndarray::{Array2, array, s};
+use ::ndarray::prelude::*;
+use ::ndarray::{OwnedRepr, ViewRepr};
 
 fn main() {
-  let input = array![
+  let input: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> = array![
     [
       1., 2., 3., 4.
     ],
@@ -16,7 +17,7 @@ fn main() {
     ],
   ];
 
-  let kernel = array![
+  let kernel: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> = array![
     [
       1., 0.
     ],
@@ -25,7 +26,8 @@ fn main() {
     ],
   ];
 
-  let output = convolve2d(&input, &kernel);
+  let output: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> =
+    convolve2d(&input, &kernel);
 
   println!("{output}");
 }
@@ -34,24 +36,26 @@ fn convolve2d(
   input: &Array2<f64>,
   kernel: &Array2<f64>,
 ) -> Array2<f64> {
-  let (h, w) = input.dim();
+  let (h, w): (usize, usize) = input.dim();
 
-  let (k_h, k_w) = kernel.dim();
+  let (k_h, k_w): (usize, usize) = kernel.dim();
 
-  let out_h = h - k_h + 1;
+  let out_h: usize = h - k_h + 1;
 
-  let out_w = w - k_w + 1;
+  let out_w: usize = w - k_w + 1;
 
-  let mut output = Array2::<f64>::zeros((out_h, out_w));
+  let mut output: ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>, f64> =
+    Array2::<f64>::zeros((out_h, out_w));
 
   for i in 0..out_h {
     for j in 0..out_w {
-      let window = input.slice(s![
-        i..i + k_h,
-        j..j + k_w
-      ]);
+      let window: ArrayBase<ViewRepr<&f64>, Dim<[usize; 2]>, f64> = input
+        .slice(s![
+          i..i + k_h,
+          j..j + k_w
+        ]);
 
-      let sum = (&window * kernel).sum();
+      let sum: f64 = (&window * kernel).sum();
 
       output[(i, j)] = sum;
     }

@@ -31,9 +31,10 @@ fn main() -> Result<(), TchError> {
   tch::manual_seed(42);
 
   for epoch in 1..=epochs {
-    let (_x_idx, y_idx, x_oh) = make_batch(batch, t_steps, vocab, device);
+    let (_x_idx, y_idx, x_oh): (Tensor, Tensor, Tensor) =
+      make_batch(batch, t_steps, vocab, device);
 
-    let mut h = Tensor::zeros(
+    let mut h: Tensor = Tensor::zeros(
       [
         batch, hidden,
       ],
@@ -43,20 +44,20 @@ fn main() -> Result<(), TchError> {
     let mut logits_per_t: Vec<Tensor> = Vec::with_capacity(t_steps as usize);
 
     for t in 0..t_steps {
-      let x_t = x_oh.narrow(1, t, 1).squeeze_dim(1);
+      let x_t: Tensor = x_oh.narrow(1, t, 1).squeeze_dim(1);
 
-      let a = x_t.apply(&wx) + h.apply(&wh);
+      let a: Tensor = x_t.apply(&wx) + h.apply(&wh);
 
       h = a.tanh();
 
-      let logits_t = h.apply(&wy);
+      let logits_t: Tensor = h.apply(&wy);
 
       logits_per_t.push(logits_t);
     }
 
-    let logits = Tensor::stack(&logits_per_t, 1);
+    let logits: Tensor = Tensor::stack(&logits_per_t, 1);
 
-    let loss = logits
+    let loss: Tensor = logits
       .reshape([
         batch * t_steps,
         vocab,
@@ -65,14 +66,14 @@ fn main() -> Result<(), TchError> {
 
     opt.backward_step(&loss);
 
-    let (_x_eval_idx, y_eval_idx, x_eval_oh) =
+    let (_x_eval_idx, y_eval_idx, x_eval_oh): (Tensor, Tensor, Tensor) =
       make_batch(1, t_steps, vocab, device);
 
     let mut eval_logits_per_t: Vec<Tensor> =
       Vec::with_capacity(t_steps as usize);
 
     if epoch % 10 == 0 {
-      let mut h_eval = Tensor::zeros(
+      let mut h_eval: Tensor = Tensor::zeros(
         [
           1, hidden,
         ],
@@ -80,16 +81,16 @@ fn main() -> Result<(), TchError> {
       );
 
       for t in 0..t_steps {
-        let x_t = x_eval_oh.narrow(1, t, 1).squeeze_dim(1);
+        let x_t: Tensor = x_eval_oh.narrow(1, t, 1).squeeze_dim(1);
 
         h_eval = (x_t.apply(&wx) + h_eval.apply(&wh)).tanh();
 
         eval_logits_per_t.push(h_eval.apply(&wy));
       }
 
-      let logits_eval = Tensor::stack(&eval_logits_per_t, 1);
+      let logits_eval: Tensor = Tensor::stack(&eval_logits_per_t, 1);
 
-      let preds = logits_eval.argmax(-1, false);
+      let preds: Tensor = logits_eval.argmax(-1, false);
 
       let preds_vec: Vec<i64> = preds
         .to_device(Device::Cpu)
@@ -103,15 +104,15 @@ fn main() -> Result<(), TchError> {
         .iter::<i64>()?
         .collect();
 
-      let correct = preds_vec
+      let correct: usize = preds_vec
         .iter()
         .zip(y_vec.iter())
         .filter(|(a, b)| a == b)
         .count();
 
-      let acc = correct as f64 / preds_vec.len() as f64;
+      let acc: f64 = correct as f64 / preds_vec.len() as f64;
 
-      let loss_val = loss.to_device(Device::Cpu).double_value(&[]);
+      let loss_val: f64 = loss.to_device(Device::Cpu).double_value(&[]);
 
       println!(
         "epoch {:3} | loss {:.4} | eval acc {:>5.1}%",
@@ -131,7 +132,7 @@ fn make_batch(
   vocab: i64,
   device: Device,
 ) -> (Tensor, Tensor, Tensor) {
-  let x_idx = Tensor::randint(
+  let x_idx: Tensor = Tensor::randint(
     vocab,
     [
       batch, t_steps,
@@ -139,9 +140,9 @@ fn make_batch(
     (Kind::Int64, device),
   );
 
-  let y_idx = (&x_idx + 1).remainder(vocab);
+  let y_idx: Tensor = (&x_idx + 1).remainder(vocab);
 
-  let x_onehot = x_idx.one_hot(vocab).to_kind(Kind::Float);
+  let x_onehot: Tensor = x_idx.one_hot(vocab).to_kind(Kind::Float);
 
   (x_idx, y_idx, x_onehot)
 }
