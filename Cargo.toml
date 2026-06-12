@@ -66,6 +66,7 @@ members = [
   "ch7-p108",
   "ch7-p112",
   "ch7-p126",
+  "ch7-p133",
 ]
 
 [workspace.dependencies]
