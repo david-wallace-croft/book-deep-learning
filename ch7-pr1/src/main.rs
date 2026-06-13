@@ -1,8 +1,20 @@
-use std::{iter::FlatMap, slice::Iter};
+use self::data::Data;
+use ::std::io::Error;
+use ::std::{iter::FlatMap, slice::Iter};
+
+mod data;
 
 type Matrix = Vec<Vec<f32>>;
 
-fn main() {
+fn main() -> Result<(), Error> {
+  let mut data: Data = Data::default();
+
+  data.load()?;
+
+  let record_count = data.record_count();
+
+  println!("Record count: {}", record_count);
+
   let cat_image_matrix: Matrix = vec![
     vec![
       0., 1., 1., 0., 2., 3.,
@@ -185,6 +197,8 @@ fn main() {
   } else {
     println!("Prediction: Not Cat ({:.2}%)", prob * 100.);
   }
+
+  Ok(())
 }
 
 fn binary_cross_entropy(
