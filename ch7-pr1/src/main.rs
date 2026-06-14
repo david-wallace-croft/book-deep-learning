@@ -1,17 +1,19 @@
 use self::data::Data;
+use self::loader::Loader;
 use ::std::io::Error;
 use ::std::{iter::FlatMap, slice::Iter};
 
 mod data;
+mod loader;
 
 type Matrix = Vec<Vec<f32>>;
 
 fn main() -> Result<(), Error> {
-  let mut data: Data = Data::default();
+  let loader: Loader = Loader::default();
 
-  data.load()?;
+  let data: Data = loader.load()?;
 
-  let record_count = data.record_count();
+  let record_count = data.images.len();
 
   println!("Record count: {}", record_count);
 
