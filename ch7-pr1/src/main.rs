@@ -13,7 +13,11 @@ fn main() -> Result<(), Error> {
 
   let data: Data = loader.load()?;
 
-  let record_count = data.images.len();
+  let record_count = data.train_images.len();
+
+  println!("Record count: {}", record_count);
+
+  let record_count = data.train_labels.len();
 
   println!("Record count: {}", record_count);
 
