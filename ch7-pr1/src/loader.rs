@@ -25,20 +25,16 @@ pub struct Loader {
 
 impl Loader {
   pub fn load(&self) -> Result<Dataset, Error> {
-    let train_images: Vec<Vec<Vec<f32>>> = self.load_train_images()?;
+    let train_images: Vec<Image> = self.load_train_images()?;
 
-    let train_labels: Vec<u8> = self.load_train_labels()?;
+    let train_labels: Vec<Category> = self.load_train_labels()?;
 
-    let dataset: Dataset = train_images
-      .into_iter()
-      .zip(train_labels)
-      .map(|(image, category)| (image, category as f32))
-      .collect();
+    let dataset: Dataset = train_images.into_iter().zip(train_labels).collect();
 
     Ok(dataset)
   }
 
-  fn load_train_images(&self) -> Result<Vec<Vec<Vec<f32>>>, Error> {
+  fn load_train_images(&self) -> Result<Vec<Image>, Error> {
     let cargo_manifest_dir: &str = env!("CARGO_MANIFEST_DIR");
 
     let mut path: PathBuf = PathBuf::from(cargo_manifest_dir);
@@ -54,15 +50,15 @@ impl Loader {
     let mut index: usize = OFFSET_IMAGES;
 
     for _image_index in 0..60_000 {
-      let mut image_vec: Vec<Vec<f32>> = Default::default();
+      let mut image_vec: Image = Default::default();
 
       for _row_index in 0..BYTES_PER_ROW {
         let mut row_vec: Vec<f32> = Default::default();
 
         for _column_index in 0..BYTES_PER_COLUMN {
-          let byte_at_index = byte_vec.get(index).unwrap();
+          let byte_at_index: &u8 = byte_vec.get(index).unwrap();
 
-          let scaled_value = *byte_at_index as f32 / 255.;
+          let scaled_value: f32 = *byte_at_index as f32 / 255.;
 
           row_vec.push(scaled_value);
 
@@ -78,7 +74,7 @@ impl Loader {
     Ok(train_images)
   }
 
-  fn load_train_labels(&self) -> Result<Vec<u8>, Error> {
+  fn load_train_labels(&self) -> Result<Vec<Category>, Error> {
     let cargo_manifest_dir: &str = env!("CARGO_MANIFEST_DIR");
 
     let mut path: PathBuf = PathBuf::from(cargo_manifest_dir);
@@ -87,7 +83,10 @@ impl Loader {
 
     path.push("train-labels.idx1-ubyte");
 
-    let mut train_labels: Vec<u8> = fs::read(path)?;
+    let mut train_labels: Vec<Category> = fs::read(path)?
+      .into_iter()
+      .map(|c: u8| c as Category)
+      .collect();
 
     train_labels.drain(0..OFFSET_LABELS);
 
