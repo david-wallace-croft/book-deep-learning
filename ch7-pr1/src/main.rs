@@ -1,27 +1,64 @@
-use self::data::Data;
-use self::loader::Loader;
+use self::loader::{Dataset, Loader};
 use ::std::io::Error;
 use ::std::{iter::FlatMap, slice::Iter};
 
-mod data;
 mod loader;
 
-type Matrix = Vec<Vec<f32>>;
+type Image = Vec<Vec<f32>>;
 
 fn main() -> Result<(), Error> {
   let loader: Loader = Loader::default();
 
-  let data: Data = loader.load()?;
+  let dataset: Dataset = loader.load()?;
 
-  let record_count = data.train_images.len();
-
-  println!("Record count: {}", record_count);
-
-  let record_count = data.train_labels.len();
+  let record_count = dataset.len();
 
   println!("Record count: {}", record_count);
 
-  let cat_image_matrix: Matrix = vec![
+  // let cat_image_matrix: Image = vec![
+  //   vec![
+  //     0., 1., 1., 0., 2., 3.,
+  //   ],
+  //   vec![
+  //     1., 2., 0., 1., 3., 1.,
+  //   ],
+  //   vec![
+  //     0., 1., 1., 0., 2., 2.,
+  //   ],
+  //   vec![
+  //     1., 0., 2., 3., 1., 0.,
+  //   ],
+  //   vec![
+  //     2., 3., 1., 0., 1., 2.,
+  //   ],
+  //   vec![
+  //     0., 1., 0., 2., 3., 1.,
+  //   ],
+  // ];
+
+  // let non_cat_image_matrix: Image = vec![
+  //   vec![
+  //     1., 0., 0., 1., 0., 0.,
+  //   ],
+  //   vec![
+  //     0., 1., 0., 0., 1., 0.,
+  //   ],
+  //   vec![
+  //     1., 0., 1., 0., 0., 1.,
+  //   ],
+  //   vec![
+  //     0., 1., 0., 1., 0., 0.,
+  //   ],
+  //   vec![
+  //     0., 0., 1., 0., 1., 0.,
+  //   ],
+  //   vec![
+  //     1., 0., 0., 1., 0., 1.,
+  //   ],
+  // ];
+
+  // TODO: replace this with 28x28 from the MNIST data
+  let new_image: Image = vec![
     vec![
       0., 1., 1., 0., 2., 3.,
     ],
@@ -42,54 +79,12 @@ fn main() -> Result<(), Error> {
     ],
   ];
 
-  let non_cat_image_matrix: Matrix = vec![
-    vec![
-      1., 0., 0., 1., 0., 0.,
-    ],
-    vec![
-      0., 1., 0., 0., 1., 0.,
-    ],
-    vec![
-      1., 0., 1., 0., 0., 1.,
-    ],
-    vec![
-      0., 1., 0., 1., 0., 0.,
-    ],
-    vec![
-      0., 0., 1., 0., 1., 0.,
-    ],
-    vec![
-      1., 0., 0., 1., 0., 1.,
-    ],
-  ];
+  // let dataset: Vec<(Image, f32)> = vec![
+  //   (cat_image_matrix, 1.),
+  //   (non_cat_image_matrix, 0.),
+  // ];
 
-  let new_image: Matrix = vec![
-    vec![
-      0., 1., 1., 0., 2., 3.,
-    ],
-    vec![
-      1., 2., 0., 1., 3., 1.,
-    ],
-    vec![
-      0., 1., 1., 0., 2., 2.,
-    ],
-    vec![
-      1., 0., 2., 3., 1., 0.,
-    ],
-    vec![
-      2., 3., 1., 0., 1., 2.,
-    ],
-    vec![
-      0., 1., 0., 2., 3., 1.,
-    ],
-  ];
-
-  let dataset: Vec<(Matrix, f32)> = vec![
-    (cat_image_matrix, 1.),
-    (non_cat_image_matrix, 0.),
-  ];
-
-  let mut kernel: Matrix = vec![
+  let mut kernel: Image = vec![
     vec![
       0.1, 0.2, -0.1,
     ],
@@ -101,9 +96,9 @@ fn main() -> Result<(), Error> {
     ],
   ];
 
-  let temp_conv: Matrix = conv2d(&dataset[0].0, &kernel);
+  let temp_conv: Image = conv2d(&dataset[0].0, &kernel);
 
-  let (temp_pool, _): (Matrix, Vec<Vec<(usize, usize)>>) =
+  let (temp_pool, _): (Image, Vec<Vec<(usize, usize)>>) =
     max_pool2x2(&temp_conv);
 
   let flat_len: usize = temp_pool.len() * temp_pool[0].len();
@@ -117,8 +112,12 @@ fn main() -> Result<(), Error> {
   for epoch in 0..50 {
     let mut total_loss: f32 = 0.;
 
-    for (image, label) in &dataset {
-      let mut conv_out: Matrix = conv2d(image, &kernel);
+    for (index, (image, label)) in dataset.iter().enumerate() {
+      if index % 10_000 == 0 {
+        println!("index = {index}");
+      }
+
+      let mut conv_out: Image = conv2d(image, &kernel);
 
       for i in 0..conv_out.len() {
         for j in 0..conv_out[0].len() {
@@ -126,7 +125,7 @@ fn main() -> Result<(), Error> {
         }
       }
 
-      let (pool_out, max_pos): (Matrix, Vec<Vec<(usize, usize)>>) =
+      let (pool_out, max_pos): (Image, Vec<Vec<(usize, usize)>>) =
         max_pool2x2(&conv_out);
 
       let flat: Vec<f32> = flatten(&pool_out);
@@ -152,7 +151,7 @@ fn main() -> Result<(), Error> {
 
       fc_bias -= lr * dz;
 
-      let mut d_pool_out: Matrix =
+      let mut d_pool_out: Image =
         vec![vec![0.; pool_out[0].len()]; pool_out.len()];
 
       let mut idx: usize = 0;
@@ -166,14 +165,14 @@ fn main() -> Result<(), Error> {
         }
       }
 
-      let d_conv_out: Matrix = max_pool2x2_backprop(
+      let d_conv_out: Image = max_pool2x2_backprop(
         &d_pool_out,
         &max_pos,
         conv_out.len(),
         conv_out[0].len(),
       );
 
-      let mut d_conv_out_relu: Matrix =
+      let mut d_conv_out_relu: Image =
         vec![vec![0.; conv_out[0].len()]; conv_out.len()];
 
       for i in 0..conv_out.len() {
@@ -217,7 +216,7 @@ fn binary_cross_entropy(
 fn conv2d(
   input: &[Vec<f32>],
   kernel: &[Vec<f32>],
-) -> Matrix {
+) -> Image {
   let h: usize = input.len();
 
   let w: usize = input[0].len();
@@ -226,7 +225,7 @@ fn conv2d(
 
   let kw: usize = kernel[0].len();
 
-  let mut output: Matrix = vec![vec![0.; w - kw + 1]; h - kh + 1];
+  let mut output: Image = vec![vec![0.; w - kw + 1]; h - kh + 1];
 
   for i in 0..(h - kh + 1) {
     for j in 0..(w - kw + 1) {
@@ -279,12 +278,12 @@ fn flatten(matrix: &[Vec<f32>]) -> Vec<f32> {
   flat_map.collect()
 }
 
-fn max_pool2x2(input: &[Vec<f32>]) -> (Matrix, Vec<Vec<(usize, usize)>>) {
+fn max_pool2x2(input: &[Vec<f32>]) -> (Image, Vec<Vec<(usize, usize)>>) {
   let h: usize = input.len() / 2;
 
   let w: usize = input[0].len() / 2;
 
-  let mut output: Matrix = vec![vec![0.; w]; h];
+  let mut output: Image = vec![vec![0.; w]; h];
 
   let mut max_pos: Vec<Vec<(usize, usize)>> = vec![vec![(0, 0); w]; h];
 
@@ -320,8 +319,8 @@ fn max_pool2x2_backprop(
   max_pos: &[Vec<(usize, usize)>],
   h: usize,
   w: usize,
-) -> Matrix {
-  let mut d_input: Matrix = vec![vec![0.; w]; h];
+) -> Image {
+  let mut d_input: Image = vec![vec![0.; w]; h];
 
   for i in 0..d_out.len() {
     for j in 0..d_out[0].len() {
@@ -340,7 +339,7 @@ fn predict(
   fc_weights: &[f32],
   fc_bias: f32,
 ) -> f32 {
-  let mut conv_out: Matrix = conv2d(image, kernel);
+  let mut conv_out: Image = conv2d(image, kernel);
 
   for row in conv_out.iter_mut() {
     for val in row.iter_mut() {
@@ -348,8 +347,7 @@ fn predict(
     }
   }
 
-  let (pool_out, _): (Matrix, Vec<Vec<(usize, usize)>>) =
-    max_pool2x2(&conv_out);
+  let (pool_out, _): (Image, Vec<Vec<(usize, usize)>>) = max_pool2x2(&conv_out);
 
   let flat: Vec<f32> = flatten(&pool_out);
 

@@ -1,7 +1,12 @@
-use super::data::Data;
 use ::std::fs;
 use ::std::io::Error;
 use ::std::path::PathBuf;
+
+pub type Image = Vec<Vec<f32>>;
+
+pub type Category = f32;
+
+pub type Dataset = Vec<(Image, Category)>;
 
 // https://web.archive.org/web/20020622183530/http://yann.lecun.com/exdb/mnist/
 
@@ -19,17 +24,18 @@ pub struct Loader {
 }
 
 impl Loader {
-  pub fn load(&self) -> Result<Data, Error> {
+  pub fn load(&self) -> Result<Dataset, Error> {
     let train_images: Vec<Vec<Vec<f32>>> = self.load_train_images()?;
 
     let train_labels: Vec<u8> = self.load_train_labels()?;
 
-    let data: Data = Data {
-      train_images,
-      train_labels,
-    };
+    let dataset: Dataset = train_images
+      .into_iter()
+      .zip(train_labels)
+      .map(|(image, category)| (image, category as f32))
+      .collect();
 
-    Ok(data)
+    Ok(dataset)
   }
 
   fn load_train_images(&self) -> Result<Vec<Vec<Vec<f32>>>, Error> {
