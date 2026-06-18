@@ -11,7 +11,21 @@ type Vector = Vec<f32>;
 fn main() -> Result<(), Error> {
   let loader: Loader = Loader::default();
 
-  let dataset: Dataset = loader.load()?;
+  let dataset: Dataset = loader
+    .load()?
+    .into_iter()
+    // Temporary hack: training to recognize when the category is a 1.
+    .map(|(image, category)| {
+      (
+        image,
+        if category > 1. {
+          0.
+        } else {
+          category
+        },
+      )
+    })
+    .collect();
 
   let record_count = dataset.len();
 
