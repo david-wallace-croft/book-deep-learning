@@ -1,4 +1,4 @@
-use super::data::{Category, Data, Dataset, Image};
+use super::aliases::{Category, Dataset, Image};
 use ::std::fs;
 use ::std::io::Error;
 use ::std::path::PathBuf;
@@ -18,64 +18,58 @@ const DATASET_LENGTH_TEST: usize = 10_000;
 const DATASET_LENGTH_TRAIN: usize = 60_000;
 
 pub struct Loader {
-  test_data_length: usize,
-  test_images_path_buf: PathBuf,
-  test_labels_path_buf: PathBuf,
-  train_data_length: usize,
-  train_images_path_buf: PathBuf,
-  train_labels_path_buf: PathBuf,
+  pub length: usize,
+  pub images_path_buf: PathBuf,
+  pub labels_path_buf: PathBuf,
 }
 
 impl Loader {
-  pub fn load(&self) -> Result<Data, Error> {
-    let test_dataset: Dataset = self.load_dataset(true)?;
+  pub fn default_test_data_loader() -> Loader {
+    let images_path_buf: PathBuf =
+      Loader::make_path_buf("t10k-images.idx3-ubyte");
 
-    let train_dataset: Dataset = self.load_dataset(false)?;
+    let labels_path_buf: PathBuf =
+      Loader::make_path_buf("t10k-labels.idx1-ubyte");
 
-    let data: Data = Data {
-      test_dataset,
-      train_dataset,
-    };
-
-    Ok(data)
+    Loader {
+      length: DATASET_LENGTH_TEST,
+      images_path_buf,
+      labels_path_buf,
+    }
   }
 
-  fn load_dataset(
-    &self,
-    use_test_data: bool,
-  ) -> Result<Dataset, Error> {
-    let images: Vec<Image> = self.load_images(use_test_data)?;
+  pub fn default_train_data_loader() -> Loader {
+    let images_path_buf: PathBuf =
+      Loader::make_path_buf("train-images.idx3-ubyte");
 
-    let labels: Vec<Category> = self.load_labels(use_test_data)?;
+    let labels_path_buf: PathBuf =
+      Loader::make_path_buf("train-labels.idx1-ubyte");
+
+    Loader {
+      length: DATASET_LENGTH_TRAIN,
+      images_path_buf,
+      labels_path_buf,
+    }
+  }
+
+  pub fn load(&self) -> Result<Dataset, Error> {
+    let images: Vec<Image> = self.load_images()?;
+
+    let labels: Vec<Category> = self.load_labels()?;
 
     let dataset: Dataset = images.into_iter().zip(labels).collect();
 
     Ok(dataset)
   }
 
-  fn load_images(
-    &self,
-    use_test_data: bool,
-  ) -> Result<Vec<Image>, Error> {
-    let path_buf: &PathBuf = if use_test_data {
-      &self.test_images_path_buf
-    } else {
-      &self.train_images_path_buf
-    };
-
-    let data_length: usize = if use_test_data {
-      self.test_data_length
-    } else {
-      self.train_data_length
-    };
-
-    let byte_vec: Vec<u8> = fs::read(path_buf)?;
+  fn load_images(&self) -> Result<Vec<Image>, Error> {
+    let byte_vec: Vec<u8> = fs::read(&self.images_path_buf)?;
 
     let mut images: Vec<Image> = Default::default();
 
     let mut index: usize = OFFSET_IMAGES;
 
-    for _image_index in 0..data_length {
+    for _image_index in 0..self.length {
       let mut image_vec: Image = Default::default();
 
       for _row_index in 0..BYTES_PER_ROW {
@@ -100,17 +94,8 @@ impl Loader {
     Ok(images)
   }
 
-  fn load_labels(
-    &self,
-    use_test_data: bool,
-  ) -> Result<Vec<Category>, Error> {
-    let path_buf: &PathBuf = if use_test_data {
-      &self.test_labels_path_buf
-    } else {
-      &self.train_labels_path_buf
-    };
-
-    let mut labels: Vec<Category> = fs::read(path_buf)?
+  fn load_labels(&self) -> Result<Vec<Category>, Error> {
+    let mut labels: Vec<Category> = fs::read(&self.labels_path_buf)?
       .into_iter()
       .map(|c: u8| c as Category)
       .collect();
@@ -130,30 +115,5 @@ impl Loader {
     path_buf.push(filename);
 
     path_buf
-  }
-}
-
-impl Default for Loader {
-  fn default() -> Self {
-    let test_images_path_buf: PathBuf =
-      Loader::make_path_buf("t10k-images.idx3-ubyte");
-
-    let test_labels_path_buf: PathBuf =
-      Loader::make_path_buf("t10k-labels.idx1-ubyte");
-
-    let train_images_path_buf: PathBuf =
-      Loader::make_path_buf("train-images.idx3-ubyte");
-
-    let train_labels_path_buf: PathBuf =
-      Loader::make_path_buf("train-labels.idx1-ubyte");
-
-    Self {
-      test_data_length: DATASET_LENGTH_TEST,
-      test_images_path_buf,
-      test_labels_path_buf,
-      train_data_length: DATASET_LENGTH_TRAIN,
-      train_images_path_buf,
-      train_labels_path_buf,
-    }
   }
 }

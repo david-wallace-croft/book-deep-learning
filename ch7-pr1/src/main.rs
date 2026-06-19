@@ -1,27 +1,28 @@
-use self::data::{Data, Dataset};
+use self::aliases::{Dataset, Matrix, Vector};
 use self::loader::Loader;
 use ::std::io::Error;
-use ::std::{iter::FlatMap, slice::Iter};
+use ::std::iter::FlatMap;
+use ::std::slice::Iter;
 
-mod data;
+mod aliases;
 mod loader;
 
-type Matrix = Vec<Vector>;
-
-type Vector = Vec<f32>;
-
 fn main() -> Result<(), Error> {
-  let loader: Loader = Loader::default();
+  let test_data_loader: Loader = Loader::default_test_data_loader();
 
-  let data: Data = loader.load()?;
+  let test_dataset: Dataset = test_data_loader.load()?;
 
-  println!("Test Data Set length: {}", data.test_dataset.len());
+  println!("Length of test dataset: {}", test_dataset.len());
 
-  let dataset: Dataset = loader
-    .load()?
-    .train_dataset
+  let train_data_loader: Loader = Loader::default_train_data_loader();
+
+  let train_dataset: Dataset = train_data_loader.load()?;
+
+  println!("Length of train dataset: {}", train_dataset.len());
+
+  // Temporary hack: training to recognize when the category is a 1.
+  let train_dataset: Dataset = train_dataset
     .into_iter()
-    // Temporary hack: training to recognize when the category is a 1.
     .map(|(image, category)| {
       (
         image,
@@ -34,7 +35,7 @@ fn main() -> Result<(), Error> {
     })
     .collect();
 
-  let record_count = dataset.len();
+  let record_count = train_dataset.len();
 
   println!("Record count: {}", record_count);
 
@@ -119,7 +120,7 @@ fn main() -> Result<(), Error> {
     ],
   ];
 
-  let temp_conv: Matrix = conv2d(&dataset[0].0, &kernel);
+  let temp_conv: Matrix = conv2d(&train_dataset[0].0, &kernel);
 
   let (temp_pool, _): (Matrix, Vec<Vec<(usize, usize)>>) =
     max_pool2x2(&temp_conv);
@@ -130,12 +131,12 @@ fn main() -> Result<(), Error> {
 
   let mut fc_bias: f32 = 0.;
 
-  let lr: f32 = 0.000_001;
+  let lr: f32 = 0.001;
 
-  for epoch in 0..50 {
+  for epoch in 0..3 {
     let mut total_loss: f32 = 0.;
 
-    for (index, (image, label)) in dataset.iter().enumerate() {
+    for (index, (image, label)) in train_dataset.iter().enumerate() {
       if index % 10_000 == 0 {
         println!("index = {index}");
       }
@@ -236,7 +237,7 @@ fn main() -> Result<(), Error> {
     println!(
       "Epoch {}: Loss = {:4}",
       epoch,
-      total_loss / dataset.len() as f32
+      total_loss / train_dataset.len() as f32
     );
   }
 
