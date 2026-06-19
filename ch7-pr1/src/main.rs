@@ -1,7 +1,9 @@
-use self::loader::{Dataset, Loader};
+use self::data::{Data, Dataset};
+use self::loader::Loader;
 use ::std::io::Error;
 use ::std::{iter::FlatMap, slice::Iter};
 
+mod data;
 mod loader;
 
 type Matrix = Vec<Vector>;
@@ -11,8 +13,13 @@ type Vector = Vec<f32>;
 fn main() -> Result<(), Error> {
   let loader: Loader = Loader::default();
 
+  let data: Data = loader.load()?;
+
+  println!("Test Data Set length: {}", data.test_dataset.len());
+
   let dataset: Dataset = loader
     .load()?
+    .train_dataset
     .into_iter()
     // Temporary hack: training to recognize when the category is a 1.
     .map(|(image, category)| {
