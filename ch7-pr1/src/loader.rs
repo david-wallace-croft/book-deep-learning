@@ -70,7 +70,7 @@ impl Loader {
     let mut index: usize = OFFSET_IMAGES;
 
     for _image_index in 0..self.length {
-      let mut image_vec: Image = Default::default();
+      let mut image: Image = Default::default();
 
       for _row_index in 0..BYTES_PER_ROW {
         let mut row_vec: Vec<f32> = Default::default();
@@ -85,10 +85,10 @@ impl Loader {
           index += 1;
         }
 
-        image_vec.push(row_vec);
+        image.push(row_vec);
       }
 
-      images.push(image_vec);
+      images.push(image);
     }
 
     Ok(images)
@@ -115,5 +115,23 @@ impl Loader {
     path_buf.push(filename);
 
     path_buf
+  }
+
+  pub fn print_image(image: &Image) {
+    for row_vec in image {
+      for value in row_vec {
+        let symbol = if *value >= 0.5 {
+          '*'
+        } else {
+          '.'
+        };
+
+        print!("{symbol} ");
+      }
+
+      println!();
+    }
+
+    println!("===");
   }
 }

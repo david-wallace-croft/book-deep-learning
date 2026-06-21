@@ -7,6 +7,8 @@ use ::std::slice::Iter;
 mod aliases;
 mod loader;
 
+const EPOCHS: usize = 3;
+
 fn main() -> Result<(), Error> {
   let test_data_loader: Loader = Loader::default_test_data_loader();
 
@@ -26,7 +28,7 @@ fn main() -> Result<(), Error> {
     .map(|(image, category)| {
       (
         image,
-        if category > 1. {
+        if category != 3. {
           0.
         } else {
           category
@@ -38,75 +40,6 @@ fn main() -> Result<(), Error> {
   let record_count = train_dataset.len();
 
   println!("Record count: {}", record_count);
-
-  // let cat_image_matrix: Image = vec![
-  //   vec![
-  //     0., 1., 1., 0., 2., 3.,
-  //   ],
-  //   vec![
-  //     1., 2., 0., 1., 3., 1.,
-  //   ],
-  //   vec![
-  //     0., 1., 1., 0., 2., 2.,
-  //   ],
-  //   vec![
-  //     1., 0., 2., 3., 1., 0.,
-  //   ],
-  //   vec![
-  //     2., 3., 1., 0., 1., 2.,
-  //   ],
-  //   vec![
-  //     0., 1., 0., 2., 3., 1.,
-  //   ],
-  // ];
-
-  // let non_cat_image_matrix: Image = vec![
-  //   vec![
-  //     1., 0., 0., 1., 0., 0.,
-  //   ],
-  //   vec![
-  //     0., 1., 0., 0., 1., 0.,
-  //   ],
-  //   vec![
-  //     1., 0., 1., 0., 0., 1.,
-  //   ],
-  //   vec![
-  //     0., 1., 0., 1., 0., 0.,
-  //   ],
-  //   vec![
-  //     0., 0., 1., 0., 1., 0.,
-  //   ],
-  //   vec![
-  //     1., 0., 0., 1., 0., 1.,
-  //   ],
-  // ];
-
-  // TODO: replace this with 28x28 from the MNIST data
-  let new_image: Matrix = vec![
-    vec![
-      0., 1., 1., 0., 2., 3.,
-    ],
-    vec![
-      1., 2., 0., 1., 3., 1.,
-    ],
-    vec![
-      0., 1., 1., 0., 2., 2.,
-    ],
-    vec![
-      1., 0., 2., 3., 1., 0.,
-    ],
-    vec![
-      2., 3., 1., 0., 1., 2.,
-    ],
-    vec![
-      0., 1., 0., 2., 3., 1.,
-    ],
-  ];
-
-  // let dataset: Vec<(Image, f32)> = vec![
-  //   (cat_image_matrix, 1.),
-  //   (non_cat_image_matrix, 0.),
-  // ];
 
   let mut kernel: Matrix = vec![
     vec![
@@ -133,7 +66,7 @@ fn main() -> Result<(), Error> {
 
   let lr: f32 = 0.001;
 
-  for epoch in 0..3 {
+  for epoch in 0..EPOCHS {
     let mut total_loss: f32 = 0.;
 
     for (index, (image, label)) in train_dataset.iter().enumerate() {
@@ -241,16 +174,24 @@ fn main() -> Result<(), Error> {
     );
   }
 
-  println!("Trained kernel: {kernel:?}");
+  // println!("Trained kernel: {kernel:?}");
 
-  println!("Trained FC weights: {fc_weights:?}");
+  // println!("Trained FC weights: {fc_weights:?}");
 
-  let prob: f32 = predict(&new_image, &kernel, &fc_weights, fc_bias);
+  for (image, category) in test_dataset {
+    if category != 3. {
+      continue;
+    }
 
-  if prob >= 0.5 {
-    println!("Prediction: Cat ({:.2}%)", prob * 100.);
-  } else {
-    println!("Prediction: Not Cat ({:.2}%)", prob * 100.);
+    Loader::print_image(&image);
+
+    let prob: f32 = predict(&image, &kernel, &fc_weights, fc_bias);
+
+    if prob >= 0.5 {
+      println!("Prediction: Three ({:.2}%)", prob * 100.);
+    } else {
+      println!("Prediction: Not Three ({:.2}%)", prob * 100.);
+    }
   }
 
   Ok(())
