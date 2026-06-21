@@ -1,4 +1,4 @@
-pub type Category = f32;
+pub type Category = u8;
 
 pub type Dataset = Vec<(Image, Category)>;
 

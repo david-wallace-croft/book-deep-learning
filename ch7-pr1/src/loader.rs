@@ -95,10 +95,7 @@ impl Loader {
   }
 
   fn load_labels(&self) -> Result<Vec<Category>, Error> {
-    let mut labels: Vec<Category> = fs::read(&self.labels_path_buf)?
-      .into_iter()
-      .map(|c: u8| c as Category)
-      .collect();
+    let mut labels: Vec<Category> = fs::read(&self.labels_path_buf)?;
 
     labels.drain(0..OFFSET_LABELS);
 

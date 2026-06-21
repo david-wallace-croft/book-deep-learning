@@ -28,8 +28,8 @@ fn main() -> Result<(), Error> {
     .map(|(image, category)| {
       (
         image,
-        if category != 3. {
-          0.
+        if category != 3 {
+          0
         } else {
           category
         },
@@ -112,7 +112,13 @@ fn main() -> Result<(), Error> {
 
       // println!("y_pred {y_pred}");
 
-      let loss: f32 = binary_cross_entropy(*label, y_pred);
+      let y_true = if *label == 3 {
+        1.
+      } else {
+        0.
+      };
+
+      let loss: f32 = binary_cross_entropy(y_true, y_pred);
 
       // println!("y_pred {y_pred} label {label}");
 
@@ -120,7 +126,7 @@ fn main() -> Result<(), Error> {
 
       total_loss += loss;
 
-      let dz: f32 = y_pred - label;
+      let dz: f32 = y_pred - y_true;
 
       for i in 0..fc_weights.len() {
         fc_weights[i] -= lr * dz * flat[i];
@@ -178,21 +184,36 @@ fn main() -> Result<(), Error> {
 
   // println!("Trained FC weights: {fc_weights:?}");
 
+  let mut total_loss = 0.;
+
+  let length = test_dataset.len();
+
   for (image, category) in test_dataset {
-    if category != 3. {
-      continue;
-    }
+    // Loader::print_image(&image);
 
-    Loader::print_image(&image);
+    let y_pred: f32 = predict(&image, &kernel, &fc_weights, fc_bias);
 
-    let prob: f32 = predict(&image, &kernel, &fc_weights, fc_bias);
-
-    if prob >= 0.5 {
-      println!("Prediction: Three ({:.2}%)", prob * 100.);
+    let y_true = if category == 3 {
+      1.
     } else {
-      println!("Prediction: Not Three ({:.2}%)", prob * 100.);
-    }
+      0.
+    };
+
+    let loss: f32 = binary_cross_entropy(y_true, y_pred);
+
+    total_loss += loss;
+
+    // if prob >= 0.5 {
+    //   println!("Prediction: Three ({:.2}%)", prob * 100.);
+    // } else {
+    //   println!("Prediction: Not Three ({:.2}%)", prob * 100.);
+    // }
   }
+
+  println!(
+    "Total loss for test dataset: {}",
+    total_loss / length as f32
+  );
 
   Ok(())
 }
