@@ -2,7 +2,7 @@ use ::std::io::Error;
 use ch7_pr1::aliases::{Dataset, Matrix, Vector};
 use ch7_pr1::loader::Loader;
 
-const EPOCHS: usize = 3;
+const EPOCH_COUNT: usize = 3;
 
 fn main() -> Result<(), Error> {
   let test_data_loader: Loader = Loader::default_test_data_loader();
@@ -61,7 +61,7 @@ fn main() -> Result<(), Error> {
 
   let lr: f32 = 0.001;
 
-  for epoch in 0..EPOCHS {
+  for epoch in 1..=EPOCH_COUNT {
     let mut total_loss: f32 = 0.;
 
     for (index, (image, label)) in train_dataset.iter().enumerate() {
@@ -88,24 +88,7 @@ fn main() -> Result<(), Error> {
 
       let flat: Vector = ::ch7_pr1::flatten(&pool_out);
 
-      // println!("flat {flat:?}");
-
-      let z: f32 = flat
-        .iter()
-        .zip(fc_weights.iter())
-        .map(|(x, w)| x * w)
-        .sum::<f32>()
-        + fc_bias;
-
-      if z.is_nan() {
-        panic!("z is NaN at index {index}");
-      }
-
-      // println!("z {z}");
-
-      let y_pred: f32 = ::ch7_pr1::sigmoid(z);
-
-      // println!("y_pred {y_pred}");
+      let y_pred: f32 = ::ch7_pr1::perceptron(&flat, &fc_weights, fc_bias);
 
       let y_true = if *label == 3 {
         1.

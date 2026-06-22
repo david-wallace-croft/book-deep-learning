@@ -132,6 +132,29 @@ pub fn max_pool2x2_backprop(
   d_input
 }
 
+pub fn net_input(
+  inputs: &[f32],
+  weights: &[f32],
+  bias: f32,
+) -> f32 {
+  inputs
+    .iter()
+    .zip(weights.iter())
+    .map(|(x, w)| x * w)
+    .sum::<f32>()
+    + bias
+}
+
+pub fn perceptron(
+  inputs: &[f32],
+  weights: &[f32],
+  bias: f32,
+) -> f32 {
+  let z: f32 = net_input(inputs, weights, bias);
+
+  sigmoid(z)
+}
+
 pub fn predict(
   image: &[Vector],
   kernel: &[Vector],
@@ -151,14 +174,7 @@ pub fn predict(
 
   let flat: Vector = flatten(&pool_out);
 
-  let z: f32 = flat
-    .iter()
-    .zip(fc_weights.iter())
-    .map(|(x, w)| x * w)
-    .sum::<f32>()
-    + fc_bias;
-
-  sigmoid(z)
+  perceptron(&flat, fc_weights, fc_bias)
 }
 
 pub fn relu(x: f32) -> f32 {
