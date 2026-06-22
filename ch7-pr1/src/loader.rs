@@ -114,7 +114,6 @@ impl Loader {
     path_buf
   }
 
-  #[expect(dead_code)]
   pub fn print_image(image: &Image) {
     for row_vec in image {
       for value in row_vec {

@@ -1,11 +1,6 @@
-use self::aliases::{Dataset, Matrix, Vector};
-use self::loader::Loader;
 use ::std::io::Error;
-use ::std::iter::FlatMap;
-use ::std::slice::Iter;
-
-mod aliases;
-mod loader;
+use ch7_pr1::aliases::{Dataset, Matrix, Vector};
+use ch7_pr1::loader::Loader;
 
 const EPOCHS: usize = 3;
 
@@ -53,10 +48,10 @@ fn main() -> Result<(), Error> {
     ],
   ];
 
-  let temp_conv: Matrix = conv2d(&train_dataset[0].0, &kernel);
+  let temp_conv: Matrix = ::ch7_pr1::conv2d(&train_dataset[0].0, &kernel);
 
   let (temp_pool, _): (Matrix, Vec<Vec<(usize, usize)>>) =
-    max_pool2x2(&temp_conv);
+    ::ch7_pr1::max_pool2x2(&temp_conv);
 
   let flat_len: usize = temp_pool.len() * temp_pool[0].len();
 
@@ -76,22 +71,22 @@ fn main() -> Result<(), Error> {
 
       // println!("{image:?}");
 
-      let mut conv_out: Matrix = conv2d(image, &kernel);
+      let mut conv_out: Matrix = ::ch7_pr1::conv2d(image, &kernel);
 
       // println!("{conv_out:?}");
 
       for i in 0..conv_out.len() {
         for j in 0..conv_out[0].len() {
-          conv_out[i][j] = relu(conv_out[i][j]);
+          conv_out[i][j] = ::ch7_pr1::relu(conv_out[i][j]);
         }
       }
 
       // println!("{conv_out:?}");
 
       let (pool_out, max_pos): (Matrix, Vec<Vec<(usize, usize)>>) =
-        max_pool2x2(&conv_out);
+        ::ch7_pr1::max_pool2x2(&conv_out);
 
-      let flat: Vector = flatten(&pool_out);
+      let flat: Vector = ::ch7_pr1::flatten(&pool_out);
 
       // println!("flat {flat:?}");
 
@@ -108,7 +103,7 @@ fn main() -> Result<(), Error> {
 
       // println!("z {z}");
 
-      let y_pred: f32 = sigmoid(z);
+      let y_pred: f32 = ::ch7_pr1::sigmoid(z);
 
       // println!("y_pred {y_pred}");
 
@@ -118,7 +113,7 @@ fn main() -> Result<(), Error> {
         0.
       };
 
-      let loss: f32 = binary_cross_entropy(y_true, y_pred);
+      let loss: f32 = ::ch7_pr1::binary_cross_entropy(y_true, y_pred);
 
       // println!("y_pred {y_pred} label {label}");
 
@@ -150,7 +145,7 @@ fn main() -> Result<(), Error> {
         }
       }
 
-      let d_conv_out: Matrix = max_pool2x2_backprop(
+      let d_conv_out: Matrix = ::ch7_pr1::max_pool2x2_backprop(
         &d_pool_out,
         &max_pos,
         conv_out.len(),
@@ -164,13 +159,14 @@ fn main() -> Result<(), Error> {
 
       for i in 0..conv_out.len() {
         for j in 0..conv_out[0].len() {
-          d_conv_out_relu[i][j] = d_conv_out[i][j] * relu_deriv(conv_out[i][j]);
+          d_conv_out_relu[i][j] =
+            d_conv_out[i][j] * ::ch7_pr1::relu_deriv(conv_out[i][j]);
         }
       }
 
       // println!("d_conv_out_relu {d_conv_out_relu:?}");
 
-      conv2d_backprop(&d_conv_out_relu, image, &mut kernel, lr);
+      ::ch7_pr1::conv2d_backprop(&d_conv_out_relu, image, &mut kernel, lr);
     }
 
     println!(
@@ -191,7 +187,7 @@ fn main() -> Result<(), Error> {
   for (image, category) in test_dataset {
     // Loader::print_image(&image);
 
-    let y_pred: f32 = predict(&image, &kernel, &fc_weights, fc_bias);
+    let y_pred: f32 = ::ch7_pr1::predict(&image, &kernel, &fc_weights, fc_bias);
 
     let y_true = if category == 3 {
       1.
@@ -199,7 +195,7 @@ fn main() -> Result<(), Error> {
       0.
     };
 
-    let loss: f32 = binary_cross_entropy(y_true, y_pred);
+    let loss: f32 = ::ch7_pr1::binary_cross_entropy(y_true, y_pred);
 
     total_loss += loss;
 
@@ -216,180 +212,4 @@ fn main() -> Result<(), Error> {
   );
 
   Ok(())
-}
-
-fn binary_cross_entropy(
-  y_true: f32,
-  y_pred: f32,
-) -> f32 {
-  -(y_true * y_pred.ln() + (1. - y_true) * (1. - y_pred).ln())
-}
-
-fn conv2d(
-  input: &[Vector],
-  kernel: &[Vector],
-) -> Matrix {
-  let h: usize = input.len();
-
-  let w: usize = input[0].len();
-
-  let kh: usize = kernel.len();
-
-  let kw: usize = kernel[0].len();
-
-  let mut output: Matrix = vec![vec![0.; w - kw + 1]; h - kh + 1];
-
-  for i in 0..(h - kh + 1) {
-    for j in 0..(w - kw + 1) {
-      let mut sum = 0.;
-
-      for m in 0..kh {
-        for n in 0..kw {
-          sum += input[i + m][j + n] * kernel[m][n];
-        }
-      }
-
-      output[i][j] = sum;
-    }
-  }
-
-  output
-}
-
-fn conv2d_backprop(
-  d_out: &[Vector],
-  input: &[Vector],
-  kernel: &mut [Vector],
-  lr: f32,
-) {
-  let kh: usize = kernel.len();
-
-  let kw: usize = kernel[0].len();
-
-  for m in 0..kh {
-    for n in 0..kw {
-      let mut grad = 0.;
-
-      for i in 0..d_out.len() {
-        for j in 0..d_out[0].len() {
-          grad += input[i + m][j + n] * d_out[i][j];
-        }
-      }
-
-      kernel[m][n] -= lr * grad;
-    }
-  }
-}
-
-fn flatten(matrix: &[Vector]) -> Vector {
-  let row_iter: Iter<'_, Vector> = matrix.iter();
-
-  let flat_map: FlatMap<Iter<'_, Vector>, Vector, _> =
-    row_iter.flat_map(|row: &Vector| row.clone());
-
-  flat_map.collect()
-}
-
-fn max_pool2x2(input: &[Vector]) -> (Matrix, Vec<Vec<(usize, usize)>>) {
-  let h: usize = input.len() / 2;
-
-  let w: usize = input[0].len() / 2;
-
-  let mut output: Matrix = vec![vec![0.; w]; h];
-
-  let mut max_pos: Vec<Vec<(usize, usize)>> = vec![vec![(0, 0); w]; h];
-
-  for i in 0..h {
-    for j in 0..w {
-      let mut max_val = f32::MIN;
-
-      let mut pos: (usize, usize) = (0, 0);
-
-      for m in 0..2 {
-        for n in 0..2 {
-          let val = input[i * 2 + m][j * 2 + n];
-
-          if val > max_val {
-            max_val = val;
-
-            pos = (i * 2 + m, j * 2 + n);
-          }
-        }
-      }
-
-      output[i][j] = max_val;
-
-      max_pos[i][j] = pos;
-    }
-  }
-
-  (output, max_pos)
-}
-
-fn max_pool2x2_backprop(
-  d_out: &[Vector],
-  max_pos: &[Vec<(usize, usize)>],
-  h: usize,
-  w: usize,
-) -> Matrix {
-  let mut d_input: Matrix = vec![vec![0.; w]; h];
-
-  for i in 0..d_out.len() {
-    for j in 0..d_out[0].len() {
-      let (mi, mj): (usize, usize) = max_pos[i][j];
-
-      d_input[mi][mj] = d_out[i][j];
-    }
-  }
-
-  d_input
-}
-
-fn predict(
-  image: &[Vector],
-  kernel: &[Vector],
-  fc_weights: &[f32],
-  fc_bias: f32,
-) -> f32 {
-  let mut conv_out: Matrix = conv2d(image, kernel);
-
-  for row in conv_out.iter_mut() {
-    for val in row.iter_mut() {
-      *val = relu(*val);
-    }
-  }
-
-  let (pool_out, _): (Matrix, Vec<Vec<(usize, usize)>>) =
-    max_pool2x2(&conv_out);
-
-  let flat: Vector = flatten(&pool_out);
-
-  let z: f32 = flat
-    .iter()
-    .zip(fc_weights.iter())
-    .map(|(x, w)| x * w)
-    .sum::<f32>()
-    + fc_bias;
-
-  sigmoid(z)
-}
-
-fn relu(x: f32) -> f32 {
-  if x > 0. {
-    x
-  } else {
-    0.
-  }
-}
-
-fn relu_deriv(x: f32) -> f32 {
-  if x > 0. {
-    1.
-  } else {
-    0.
-  }
-}
-
-fn sigmoid(x: f32) -> f32 {
-  1. / (1. + (-x).exp())
 }
