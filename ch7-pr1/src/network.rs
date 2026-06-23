@@ -183,6 +183,8 @@ impl Network {
 
     let fc_weights = &self.fc_weight_matrix[weight_index];
 
+    // println!("{fc_weights:?}");
+
     super::perceptron(&flat, fc_weights, self.fc_bias)
   }
 }

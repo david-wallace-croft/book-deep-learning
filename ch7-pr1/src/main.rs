@@ -18,21 +18,6 @@ fn main() -> Result<(), Error> {
 
   println!("Length of train dataset: {}", train_dataset.len());
 
-  // Temporary hack: training to recognize when the category is a 1.
-  let train_dataset: Dataset = train_dataset
-    .into_iter()
-    .map(|(image, category)| {
-      (
-        image,
-        if category != 3 {
-          0
-        } else {
-          category
-        },
-      )
-    })
-    .collect();
-
   let record_count = train_dataset.len();
 
   println!("Record count: {}", record_count);
@@ -61,7 +46,7 @@ fn main() -> Result<(), Error> {
     for weight_index in 0..network.label_count {
       let y_pred: f32 = network.predict(&image, weight_index);
 
-      print!("{weight_index}={y_pred:.2} ");
+      print!("{weight_index}={y_pred:.3} ");
 
       let y_true = if category as usize == weight_index {
         1.
