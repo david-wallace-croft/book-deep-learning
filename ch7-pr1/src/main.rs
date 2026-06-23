@@ -8,17 +8,17 @@ const EPOCH_COUNT: usize = 3;
 fn main() -> Result<(), Error> {
   let test_data_loader: Loader = Loader::default_test_data_loader();
 
-  let mut test_dataset: Dataset = test_data_loader.load()?;
+  let test_dataset: Dataset = test_data_loader.load()?;
 
-  test_dataset.drain(10..10_000);
+  // test_dataset.drain(10..10_000);
 
   println!("Length of test dataset: {}", test_dataset.len());
 
   let train_data_loader: Loader = Loader::default_train_data_loader();
 
-  let mut train_dataset: Dataset = train_data_loader.load()?;
+  let train_dataset: Dataset = train_data_loader.load()?;
 
-  train_dataset.drain(10_000..60_000);
+  // train_dataset.drain(10_000..60_000);
 
   println!("Length of train dataset: {}", train_dataset.len());
 

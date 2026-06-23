@@ -16,7 +16,7 @@ pub struct Network {
 impl Network {
   pub fn backprop(
     &mut self,
-    image: &Image,
+    _image: &Image,
     weight_index: usize,
     y_pred: f32,
     y_true: f32,
@@ -39,6 +39,7 @@ impl Network {
 
     let fc_weights = &mut self.fc_weight_matrix[weight_index];
 
+    #[expect(clippy::needless_range_loop)]
     for i in 0..fc_weights.len() {
       fc_weights[i] -= self.learning_rate * dz * self.flat[i];
     }
@@ -88,7 +89,7 @@ impl Network {
     kernel: &Matrix,
     train_dataset: &Dataset,
   ) -> usize {
-    let temp_conv: Matrix = super::conv2d(&train_dataset[0].0, &kernel);
+    let temp_conv: Matrix = super::conv2d(&train_dataset[0].0, kernel);
 
     let (temp_pool, _): (Matrix, Vec<Vec<(usize, usize)>>) =
       super::max_pool2x2(&temp_conv);
