@@ -1,6 +1,7 @@
 use ::std::io::Error;
-use ch7_pr1::aliases::{Dataset, Matrix, Vector};
+use ch7_pr1::aliases::Dataset;
 use ch7_pr1::loader::Loader;
+use ch7_pr1::network::Network;
 
 const EPOCH_COUNT: usize = 3;
 
@@ -36,132 +37,17 @@ fn main() -> Result<(), Error> {
 
   println!("Record count: {}", record_count);
 
-  let mut kernel: Matrix = vec![
-    vec![
-      0.1, 0.2, -0.1,
-    ],
-    vec![
-      0.0, 0.0, 0.1,
-    ],
-    vec![
-      -0.2, 0., 0.2,
-    ],
-  ];
-
-  let temp_conv: Matrix = ::ch7_pr1::conv2d(&train_dataset[0].0, &kernel);
-
-  let (temp_pool, _): (Matrix, Vec<Vec<(usize, usize)>>) =
-    ::ch7_pr1::max_pool2x2(&temp_conv);
-
-  let flat_len: usize = temp_pool.len() * temp_pool[0].len();
-
-  let mut fc_weights: Vector = vec![0.5; flat_len];
-
-  let mut fc_bias: f32 = 0.;
-
-  let lr: f32 = 0.001;
+  let mut network: Network = Network::new(&train_dataset);
 
   for epoch in 1..=EPOCH_COUNT {
-    let mut total_loss: f32 = 0.;
-
-    for (index, (image, label)) in train_dataset.iter().enumerate() {
-      if index % 10_000 == 0 {
-        println!("index = {index}");
-      }
-
-      // println!("{image:?}");
-
-      let mut conv_out: Matrix = ::ch7_pr1::conv2d(image, &kernel);
-
-      // println!("{conv_out:?}");
-
-      for i in 0..conv_out.len() {
-        for j in 0..conv_out[0].len() {
-          conv_out[i][j] = ::ch7_pr1::relu(conv_out[i][j]);
-        }
-      }
-
-      // println!("{conv_out:?}");
-
-      let (pool_out, max_pos): (Matrix, Vec<Vec<(usize, usize)>>) =
-        ::ch7_pr1::max_pool2x2(&conv_out);
-
-      let flat: Vector = ::ch7_pr1::flatten(&pool_out);
-
-      let y_pred: f32 = ::ch7_pr1::perceptron(&flat, &fc_weights, fc_bias);
-
-      let y_true = if *label == 3 {
-        1.
-      } else {
-        0.
-      };
-
-      let loss: f32 = ::ch7_pr1::binary_cross_entropy(y_true, y_pred);
-
-      // println!("y_pred {y_pred} label {label}");
-
-      // let loss: f32 = (y_pred - label).abs();
-
-      total_loss += loss;
-
-      let dz: f32 = y_pred - y_true;
-
-      for i in 0..fc_weights.len() {
-        fc_weights[i] -= lr * dz * flat[i];
-      }
-
-      // println!("fc_weights {fc_weights:?}");
-
-      fc_bias -= lr * dz;
-
-      let mut d_pool_out: Matrix =
-        vec![vec![0.; pool_out[0].len()]; pool_out.len()];
-
-      let mut idx: usize = 0;
-
-      #[expect(clippy::needless_range_loop)]
-      for i in 0..pool_out.len() {
-        for j in 0..pool_out[0].len() {
-          d_pool_out[i][j] = dz * fc_weights[idx];
-
-          idx += 1;
-        }
-      }
-
-      let d_conv_out: Matrix = ::ch7_pr1::max_pool2x2_backprop(
-        &d_pool_out,
-        &max_pos,
-        conv_out.len(),
-        conv_out[0].len(),
-      );
-
-      // println!("d_conv_out {d_conv_out:?}");
-
-      let mut d_conv_out_relu: Matrix =
-        vec![vec![0.; conv_out[0].len()]; conv_out.len()];
-
-      for i in 0..conv_out.len() {
-        for j in 0..conv_out[0].len() {
-          d_conv_out_relu[i][j] =
-            d_conv_out[i][j] * ::ch7_pr1::relu_deriv(conv_out[i][j]);
-        }
-      }
-
-      // println!("d_conv_out_relu {d_conv_out_relu:?}");
-
-      ::ch7_pr1::conv2d_backprop(&d_conv_out_relu, image, &mut kernel, lr);
-    }
+    network.train(&train_dataset);
 
     println!(
       "Epoch {}: Loss = {:4}",
       epoch,
-      total_loss / train_dataset.len() as f32
+      network.total_loss / train_dataset.len() as f32
     );
   }
-
-  // println!("Trained kernel: {kernel:?}");
-
-  // println!("Trained FC weights: {fc_weights:?}");
 
   let mut total_loss = 0.;
 
@@ -170,7 +56,7 @@ fn main() -> Result<(), Error> {
   for (image, category) in test_dataset {
     // Loader::print_image(&image);
 
-    let y_pred: f32 = ::ch7_pr1::predict(&image, &kernel, &fc_weights, fc_bias);
+    let y_pred: f32 = network.predict(&image);
 
     let y_true = if category == 3 {
       1.

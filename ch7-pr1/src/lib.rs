@@ -4,6 +4,7 @@ use ::std::slice::Iter;
 
 pub mod aliases;
 pub mod loader;
+pub mod network;
 
 pub fn binary_cross_entropy(
   y_true: f32,
@@ -153,28 +154,6 @@ pub fn perceptron(
   let z: f32 = net_input(inputs, weights, bias);
 
   sigmoid(z)
-}
-
-pub fn predict(
-  image: &[Vector],
-  kernel: &[Vector],
-  fc_weights: &[f32],
-  fc_bias: f32,
-) -> f32 {
-  let mut conv_out: Matrix = conv2d(image, kernel);
-
-  for row in conv_out.iter_mut() {
-    for val in row.iter_mut() {
-      *val = relu(*val);
-    }
-  }
-
-  let (pool_out, _): (Matrix, Vec<Vec<(usize, usize)>>) =
-    max_pool2x2(&conv_out);
-
-  let flat: Vector = flatten(&pool_out);
-
-  perceptron(&flat, fc_weights, fc_bias)
 }
 
 pub fn relu(x: f32) -> f32 {
