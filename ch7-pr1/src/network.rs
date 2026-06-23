@@ -21,7 +21,17 @@ impl Network {
     y_pred: f32,
     y_true: f32,
   ) {
-    let loss: f32 = super::binary_cross_entropy(y_true, y_pred);
+    // let loss: f32 = super::binary_cross_entropy(y_true, y_pred);
+
+    // if loss.is_nan() {
+    //   println!("loss is NaN");
+
+    //   println!("y_true = {y_true}, y_pred = {y_pred}");
+
+    //   panic!();
+    // }
+
+    let loss: f32 = (y_true - y_pred).abs();
 
     self.total_loss += loss;
 
@@ -66,12 +76,12 @@ impl Network {
       }
     }
 
-    super::conv2d_backprop(
-      &d_conv_out_relu,
-      image,
-      &mut self.kernel,
-      self.learning_rate,
-    );
+    // super::conv2d_backprop(
+    //   &d_conv_out_relu,
+    //   image,
+    //   &mut self.kernel,
+    //   self.learning_rate,
+    // );
   }
 
   pub fn calc_flat_length(
@@ -133,13 +143,13 @@ impl Network {
   pub fn new(train_dataset: &Dataset) -> Network {
     let kernel: Matrix = vec![
       vec![
-        0.1, 0.2, -0.1,
+        0.1, 0.1, 0.1,
       ],
       vec![
-        0.0, 0.0, 0.1,
+        0.1, 0.1, 0.1,
       ],
       vec![
-        -0.2, 0., 0.2,
+        0.1, 0.1, 0.1,
       ],
     ];
 
@@ -156,7 +166,7 @@ impl Network {
       flat: Default::default(),
       kernel,
       label_count,
-      learning_rate: 0.001,
+      learning_rate: 0.1,
       max_pos: Default::default(),
       pool_out: Default::default(),
       total_loss: 0.,

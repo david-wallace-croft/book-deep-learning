@@ -8,13 +8,17 @@ const EPOCH_COUNT: usize = 3;
 fn main() -> Result<(), Error> {
   let test_data_loader: Loader = Loader::default_test_data_loader();
 
-  let test_dataset: Dataset = test_data_loader.load()?;
+  let mut test_dataset: Dataset = test_data_loader.load()?;
+
+  test_dataset.drain(10..10_000);
 
   println!("Length of test dataset: {}", test_dataset.len());
 
   let train_data_loader: Loader = Loader::default_train_data_loader();
 
-  let train_dataset: Dataset = train_data_loader.load()?;
+  let mut train_dataset: Dataset = train_data_loader.load()?;
+
+  train_dataset.drain(1_000..60_000);
 
   println!("Length of train dataset: {}", train_dataset.len());
 
@@ -46,7 +50,7 @@ fn main() -> Result<(), Error> {
     for weight_index in 0..network.label_count {
       let y_pred: f32 = network.predict(&image, weight_index);
 
-      print!("{weight_index}={y_pred:.3} ");
+      print!("{weight_index}={y_pred:.6} ");
 
       let y_true = if category as usize == weight_index {
         1.
@@ -54,7 +58,9 @@ fn main() -> Result<(), Error> {
         0.
       };
 
-      let loss: f32 = ::ch7_pr1::binary_cross_entropy(y_true, y_pred);
+      // let loss: f32 = ::ch7_pr1::binary_cross_entropy(y_true, y_pred);
+
+      let loss: f32 = (y_true - y_pred).abs();
 
       total_loss += loss;
     }
@@ -66,6 +72,10 @@ fn main() -> Result<(), Error> {
     "Total loss for test dataset: {}",
     total_loss / (length * network.label_count) as f32
   );
+
+  // println!("{:?}", network.fc_weight_matrix);
+
+  // println!("{:?}", network.kernel);
 
   Ok(())
 }
