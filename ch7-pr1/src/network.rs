@@ -114,19 +114,19 @@ impl Network {
 
       self.flat = super::flatten(&self.pool_out);
 
-      let fc_weights = &self.fc_weight_matrix[0];
+      for weight_index in 0..self.label_count {
+        let fc_weights = &self.fc_weight_matrix[weight_index];
 
-      let y_pred = super::perceptron(&self.flat, fc_weights, self.fc_bias);
+        let y_pred = super::perceptron(&self.flat, fc_weights, self.fc_bias);
 
-      let y_true = if *label == 3 {
-        1.
-      } else {
-        0.
-      };
+        let y_true = if *label as usize == weight_index {
+          1.
+        } else {
+          0.
+        };
 
-      let weight_index = 0;
-
-      self.backprop(image, weight_index, y_pred, y_true);
+        self.backprop(image, weight_index, y_pred, y_true);
+      }
     }
   }
 

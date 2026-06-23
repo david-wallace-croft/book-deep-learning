@@ -45,7 +45,7 @@ fn main() -> Result<(), Error> {
     println!(
       "Epoch {}: Loss = {:4}",
       epoch,
-      network.total_loss / train_dataset.len() as f32
+      network.total_loss / (train_dataset.len() * network.label_count) as f32
     );
   }
 
@@ -56,30 +56,30 @@ fn main() -> Result<(), Error> {
   for (image, category) in test_dataset {
     // Loader::print_image(&image);
 
-    let weight_index = 0;
+    print!("{category}: ");
 
-    let y_pred: f32 = network.predict(&image, weight_index);
+    for weight_index in 0..network.label_count {
+      let y_pred: f32 = network.predict(&image, weight_index);
 
-    let y_true = if category == 3 {
-      1.
-    } else {
-      0.
-    };
+      print!("{weight_index}={y_pred:.2} ");
 
-    let loss: f32 = ::ch7_pr1::binary_cross_entropy(y_true, y_pred);
+      let y_true = if category as usize == weight_index {
+        1.
+      } else {
+        0.
+      };
 
-    total_loss += loss;
+      let loss: f32 = ::ch7_pr1::binary_cross_entropy(y_true, y_pred);
 
-    // if prob >= 0.5 {
-    //   println!("Prediction: Three ({:.2}%)", prob * 100.);
-    // } else {
-    //   println!("Prediction: Not Three ({:.2}%)", prob * 100.);
-    // }
+      total_loss += loss;
+    }
+
+    println!();
   }
 
   println!(
     "Total loss for test dataset: {}",
-    total_loss / length as f32
+    total_loss / (length * network.label_count) as f32
   );
 
   Ok(())
