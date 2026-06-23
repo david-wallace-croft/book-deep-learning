@@ -18,7 +18,7 @@ fn main() -> Result<(), Error> {
 
   let mut train_dataset: Dataset = train_data_loader.load()?;
 
-  train_dataset.drain(1_000..60_000);
+  train_dataset.drain(10_000..60_000);
 
   println!("Length of train dataset: {}", train_dataset.len());
 
@@ -45,10 +45,18 @@ fn main() -> Result<(), Error> {
   for (image, category) in test_dataset {
     // Loader::print_image(&image);
 
-    print!("{category}: ");
+    let mut max = f32::MIN;
+
+    let mut guess: usize = 0;
 
     for weight_index in 0..network.label_count {
       let y_pred: f32 = network.predict(&image, weight_index);
+
+      if y_pred > max {
+        max = y_pred;
+
+        guess = weight_index;
+      }
 
       print!("{weight_index}={y_pred:.6} ");
 
@@ -65,7 +73,7 @@ fn main() -> Result<(), Error> {
       total_loss += loss;
     }
 
-    println!();
+    println!("actual = {category} guess = {guess}");
   }
 
   println!(
