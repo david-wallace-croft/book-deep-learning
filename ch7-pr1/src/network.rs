@@ -3,22 +3,21 @@ use super::aliases::{Dataset, Image, Matrix, Vector};
 pub struct Network {
   pub conv_out: Matrix,
   pub fc_bias: f32,
-  pub fc_weights: Vector,
+  pub fc_weight_matrix: Matrix,
   pub flat: Vector,
-  // pub flat_length: usize,
-  // pub image: Image,
   pub kernel: Matrix,
+  pub label_count: usize,
   pub learning_rate: f32,
   pub max_pos: Vec<Vec<(usize, usize)>>,
   pub pool_out: Matrix,
   pub total_loss: f32,
-  // pub train_dataset: Dataset,
 }
 
 impl Network {
   pub fn backprop(
     &mut self,
     image: &Image,
+    weight_index: usize,
     y_pred: f32,
     y_true: f32,
   ) {
@@ -28,8 +27,10 @@ impl Network {
 
     let dz: f32 = y_pred - y_true;
 
-    for i in 0..self.fc_weights.len() {
-      self.fc_weights[i] -= self.learning_rate * dz * self.flat[i];
+    let fc_weights = &mut self.fc_weight_matrix[weight_index];
+
+    for i in 0..fc_weights.len() {
+      fc_weights[i] -= self.learning_rate * dz * self.flat[i];
     }
 
     self.fc_bias -= self.learning_rate * dz;
@@ -42,7 +43,7 @@ impl Network {
     #[expect(clippy::needless_range_loop)]
     for i in 0..self.pool_out.len() {
       for j in 0..self.pool_out[0].len() {
-        d_pool_out[i][j] = dz * self.fc_weights[idx];
+        d_pool_out[i][j] = dz * fc_weights[idx];
 
         idx += 1;
       }
@@ -113,8 +114,9 @@ impl Network {
 
       self.flat = super::flatten(&self.pool_out);
 
-      let y_pred: f32 =
-        super::perceptron(&self.flat, &self.fc_weights, self.fc_bias);
+      let fc_weights = &self.fc_weight_matrix[0];
+
+      let y_pred = super::perceptron(&self.flat, fc_weights, self.fc_bias);
 
       let y_true = if *label == 3 {
         1.
@@ -122,7 +124,9 @@ impl Network {
         0.
       };
 
-      self.backprop(image, y_pred, y_true);
+      let weight_index = 0;
+
+      self.backprop(image, weight_index, y_pred, y_true);
     }
   }
 
@@ -141,26 +145,28 @@ impl Network {
 
     let flat_length: usize = Self::calc_flat_length(&kernel, train_dataset);
 
-    let fc_weights: Vector = vec![0.5; flat_length];
+    let label_count: usize = 10;
+
+    let fc_weight_matrix: Matrix = vec![vec![0.5; flat_length]; label_count];
 
     Network {
       conv_out: Default::default(),
       fc_bias: 0.,
-      fc_weights,
+      fc_weight_matrix,
       flat: Default::default(),
-      // flat_length,
       kernel,
+      label_count,
       learning_rate: 0.001,
       max_pos: Default::default(),
       pool_out: Default::default(),
       total_loss: 0.,
-      // train_dataset,
     }
   }
 
   pub fn predict(
     &self,
     image: &[Vector],
+    weight_index: usize,
   ) -> f32 {
     let mut conv_out: Matrix = super::conv2d(image, &self.kernel);
 
@@ -175,6 +181,8 @@ impl Network {
 
     let flat: Vector = super::flatten(&pool_out);
 
-    super::perceptron(&flat, &self.fc_weights, self.fc_bias)
+    let fc_weights = &self.fc_weight_matrix[weight_index];
+
+    super::perceptron(&flat, fc_weights, self.fc_bias)
   }
 }

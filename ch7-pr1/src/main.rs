@@ -56,7 +56,9 @@ fn main() -> Result<(), Error> {
   for (image, category) in test_dataset {
     // Loader::print_image(&image);
 
-    let y_pred: f32 = network.predict(&image);
+    let weight_index = 0;
+
+    let y_pred: f32 = network.predict(&image, weight_index);
 
     let y_true = if category == 3 {
       1.
