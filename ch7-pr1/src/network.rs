@@ -154,6 +154,18 @@ impl Network {
       ],
     ];
 
+    // let kernel: Matrix = vec![
+    //   vec![
+    //     1., 0., 0.,
+    //   ],
+    //   vec![
+    //     0., 0., 0.,
+    //   ],
+    //   vec![
+    //     0., 0., 0.,
+    //   ],
+    // ];
+
     let flat_length: usize = Self::calc_flat_length(&kernel, train_dataset);
 
     let label_count: usize = 10;
