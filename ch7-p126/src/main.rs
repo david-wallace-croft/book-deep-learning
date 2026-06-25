@@ -1,49 +1,64 @@
 use ::tch::nn::{
-  self, Adam, Linear, Optimizer, OptimizerConfig, Path, VarStore,
+  self, Adam, Linear, LinearConfig, Optimizer, OptimizerConfig, Path, VarStore,
 };
 use ::tch::{Device, Kind, TchError, Tensor};
+
+const BATCH: i64 = 32;
+const EPOCHS: i64 = 120;
+const HIDDEN_LAYER_SIZE: i64 = 16;
+const INPUT_LAYER_SIZE: i64 = 6; // vocab length
+const LEARNING_RATE: f64 = 1e-3;
+const SEED: i64 = 42;
+const T_STEPS: i64 = 8;
 
 fn main() -> Result<(), TchError> {
   let device: Device = Device::cuda_if_available();
 
-  let vs: VarStore = VarStore::new(device);
+  let var_store: VarStore = VarStore::new(device);
 
-  let root: &Path<'_> = &vs.root();
+  let root_path: &Path<'_> = &var_store.root();
 
-  let vocab: i64 = 6;
+  let wx: Linear = nn::linear(
+    root_path / "wx",
+    INPUT_LAYER_SIZE,
+    HIDDEN_LAYER_SIZE,
+    LinearConfig::default(),
+  );
 
-  let hidden: i64 = 16;
+  let wh: Linear = nn::linear(
+    root_path / "wh",
+    HIDDEN_LAYER_SIZE,
+    HIDDEN_LAYER_SIZE,
+    LinearConfig::default(),
+  );
 
-  let t_steps: i64 = 8;
+  let wy: Linear = nn::linear(
+    root_path / "wy",
+    HIDDEN_LAYER_SIZE,
+    INPUT_LAYER_SIZE,
+    LinearConfig::default(),
+  );
 
-  let batch: i64 = 32;
+  let mut optimizer: Optimizer =
+    Adam::default().build(&var_store, LEARNING_RATE)?;
 
-  let epochs: i64 = 120;
+  tch::manual_seed(SEED);
 
-  let wx: Linear = nn::linear(root / "wx", vocab, hidden, Default::default());
-
-  let wh: Linear = nn::linear(root / "wh", hidden, hidden, Default::default());
-
-  let wy: Linear = nn::linear(root / "wy", hidden, vocab, Default::default());
-
-  let mut opt: Optimizer = Adam::default().build(&vs, 1e-3)?;
-
-  tch::manual_seed(42);
-
-  for epoch in 1..=epochs {
+  for epoch in 1..=EPOCHS {
     let (_x_idx, y_idx, x_oh): (Tensor, Tensor, Tensor) =
-      make_batch(batch, t_steps, vocab, device);
+      make_batch(BATCH, device);
 
     let mut h: Tensor = Tensor::zeros(
       [
-        batch, hidden,
+        BATCH,
+        HIDDEN_LAYER_SIZE,
       ],
       (Kind::Float, device),
     );
 
-    let mut logits_per_t: Vec<Tensor> = Vec::with_capacity(t_steps as usize);
+    let mut logits_per_t: Vec<Tensor> = Vec::with_capacity(T_STEPS as usize);
 
-    for t in 0..t_steps {
+    for t in 0..T_STEPS {
       let x_t: Tensor = x_oh.narrow(1, t, 1).squeeze_dim(1);
 
       let a: Tensor = x_t.apply(&wx) + h.apply(&wh);
@@ -59,28 +74,29 @@ fn main() -> Result<(), TchError> {
 
     let loss: Tensor = logits
       .reshape([
-        batch * t_steps,
-        vocab,
+        BATCH * T_STEPS,
+        INPUT_LAYER_SIZE,
       ])
-      .cross_entropy_for_logits(&y_idx.reshape([batch * t_steps]));
+      .cross_entropy_for_logits(&y_idx.reshape([BATCH * T_STEPS]));
 
-    opt.backward_step(&loss);
+    optimizer.backward_step(&loss);
 
     let (_x_eval_idx, y_eval_idx, x_eval_oh): (Tensor, Tensor, Tensor) =
-      make_batch(1, t_steps, vocab, device);
+      make_batch(1, device);
 
     let mut eval_logits_per_t: Vec<Tensor> =
-      Vec::with_capacity(t_steps as usize);
+      Vec::with_capacity(T_STEPS as usize);
 
     if epoch % 10 == 0 {
       let mut h_eval: Tensor = Tensor::zeros(
         [
-          1, hidden,
+          1,
+          HIDDEN_LAYER_SIZE,
         ],
         (Kind::Float, device),
       );
 
-      for t in 0..t_steps {
+      for t in 0..T_STEPS {
         let x_t: Tensor = x_eval_oh.narrow(1, t, 1).squeeze_dim(1);
 
         h_eval = (x_t.apply(&wx) + h_eval.apply(&wh)).tanh();
@@ -128,21 +144,19 @@ fn main() -> Result<(), TchError> {
 
 fn make_batch(
   batch: i64,
-  t_steps: i64,
-  vocab: i64,
   device: Device,
 ) -> (Tensor, Tensor, Tensor) {
   let x_idx: Tensor = Tensor::randint(
-    vocab,
+    INPUT_LAYER_SIZE,
     [
-      batch, t_steps,
+      batch, T_STEPS,
     ],
     (Kind::Int64, device),
   );
 
-  let y_idx: Tensor = (&x_idx + 1).remainder(vocab);
+  let y_idx: Tensor = (&x_idx + 1).remainder(INPUT_LAYER_SIZE);
 
-  let x_onehot: Tensor = x_idx.one_hot(vocab).to_kind(Kind::Float);
+  let x_onehot: Tensor = x_idx.one_hot(INPUT_LAYER_SIZE).to_kind(Kind::Float);
 
   (x_idx, y_idx, x_onehot)
 }
