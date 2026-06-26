@@ -3,13 +3,14 @@ use ::tch::nn::{
 };
 use ::tch::{Device, Kind, TchError, Tensor};
 
-const EPOCH_COUNT: i64 = 120;
+const EPOCH_COUNT: usize = 120;
 const HIDDEN_LAYER_SIZE: i64 = 16;
-const INPUT_LAYER_SIZE: i64 = 6; // vocab length
+const INPUT_LAYER_SIZE: i64 = VOCABULARY_LENGTH as i64;
 const LEARNING_RATE: f64 = 1e-3;
 const SEED: i64 = 42;
-const SEQUENCES_PER_BATCH: i64 = 32;
-const TIME_STEPS: i64 = 8;
+const SEQUENCES_PER_BATCH: usize = 32;
+const TIME_STEP_COUNT: usize = 8;
+const VOCABULARY_LENGTH: u8 = 6;
 
 fn main() -> Result<(), TchError> {
   let device: Device = Device::cuda_if_available();
@@ -45,21 +46,24 @@ fn main() -> Result<(), TchError> {
   tch::manual_seed(SEED);
 
   for epoch in 1..=EPOCH_COUNT {
-    let (_x_idx, y_idx, x_oh): (Tensor, Tensor, Tensor) =
+    let (_x_idx, y_idx, x_one_hot): (Tensor, Tensor, Tensor) =
       make_batch(SEQUENCES_PER_BATCH, device);
 
     let mut h: Tensor = Tensor::zeros(
       [
-        SEQUENCES_PER_BATCH,
+        SEQUENCES_PER_BATCH as i64,
         HIDDEN_LAYER_SIZE,
       ],
       (Kind::Float, device),
     );
 
-    let mut logits_per_t: Vec<Tensor> = Vec::with_capacity(TIME_STEPS as usize);
+    let mut logits_per_t: Vec<Tensor> =
+      Vec::with_capacity(TIME_STEP_COUNT as usize);
 
-    for t in 0..TIME_STEPS {
-      let x_t: Tensor = x_oh.narrow(1, t, 1).squeeze_dim(1);
+    for time_step_index in 0..TIME_STEP_COUNT {
+      let x_t: Tensor = x_one_hot
+        .narrow(1, time_step_index as i64, 1)
+        .squeeze_dim(1);
 
       let a: Tensor = x_t.apply(&wx) + h.apply(&wh);
 
@@ -74,11 +78,11 @@ fn main() -> Result<(), TchError> {
 
     let loss: Tensor = logits
       .reshape([
-        SEQUENCES_PER_BATCH * TIME_STEPS,
+        (SEQUENCES_PER_BATCH * TIME_STEP_COUNT) as i64,
         INPUT_LAYER_SIZE,
       ])
       .cross_entropy_for_logits(
-        &y_idx.reshape([SEQUENCES_PER_BATCH * TIME_STEPS]),
+        &y_idx.reshape([(SEQUENCES_PER_BATCH * TIME_STEP_COUNT) as i64]),
       );
 
     optimizer.backward_step(&loss);
@@ -93,17 +97,22 @@ fn main() -> Result<(), TchError> {
 
 fn evaluate(
   device: Device,
-  epoch: i64,
+  epoch: usize,
   loss: &Tensor,
   wh: &Linear,
   wx: &Linear,
   wy: &Linear,
 ) -> Result<(), TchError> {
-  let (_x_eval_idx, y_eval_idx, x_eval_oh): (Tensor, Tensor, Tensor) =
+  let (_x_eval_idx, y_eval_idx, x_eval_one_hot): (Tensor, Tensor, Tensor) =
     make_batch(1, device);
 
-  let mut eval_logits_per_t: Vec<Tensor> =
-    Vec::with_capacity(TIME_STEPS as usize);
+  // println!("{x_eval_idx}");
+
+  // println!("{y_eval_idx}");
+
+  // println!("{x_eval_one_hot}");
+
+  let mut eval_logits_per_t: Vec<Tensor> = Vec::with_capacity(TIME_STEP_COUNT);
 
   let mut h_eval: Tensor = Tensor::zeros(
     [
@@ -113,8 +122,12 @@ fn evaluate(
     (Kind::Float, device),
   );
 
-  for t in 0..TIME_STEPS {
-    let x_t: Tensor = x_eval_oh.narrow(1, t, 1).squeeze_dim(1);
+  for time_step_index in 0..TIME_STEP_COUNT {
+    let x_t: Tensor = x_eval_one_hot
+      .narrow(1, time_step_index as i64, 1)
+      .squeeze_dim(1);
+
+    // println!("{x_t}");
 
     h_eval = (x_t.apply(wx) + h_eval.apply(wh)).tanh();
 
@@ -160,17 +173,17 @@ fn evaluate(
 // Sets up a sequence prediction task where the goal is to predict the next
 // token ID
 fn make_batch(
-  sequences_per_batch: i64,
+  sequences_per_batch: usize,
   device: Device,
 ) -> (Tensor, Tensor, Tensor) {
   // Generates random sequences of int64 token indices
-  // ranging from zero to INPUT_LAYER_SIZE minus one inclusive
+  // ranging from zero to (INPUT_LAYER_SIZE minus one) inclusive
   // in a 2D tensor with shape [sequences_per_batch, TIME_STEPS]
   let x_idx: Tensor = Tensor::randint(
     INPUT_LAYER_SIZE,
     [
-      sequences_per_batch,
-      TIME_STEPS,
+      sequences_per_batch as i64,
+      TIME_STEP_COUNT as i64,
     ],
     (Kind::Int64, device),
   );
@@ -181,7 +194,7 @@ fn make_batch(
   // Converts the integer token IDs into a one-hot encoded representation
   // of shape [sequences_per_batch, TIME_STEPS, INPUT_LAYER_SIZE]
   // Example: 2 becomes [0., 0., 1., 0.]
-  let x_onehot: Tensor = x_idx.one_hot(INPUT_LAYER_SIZE).to_kind(Kind::Float);
+  let x_one_hot: Tensor = x_idx.one_hot(INPUT_LAYER_SIZE).to_kind(Kind::Float);
 
-  (x_idx, y_idx, x_onehot)
+  (x_idx, y_idx, x_one_hot)
 }
