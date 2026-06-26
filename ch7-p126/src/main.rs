@@ -4,7 +4,7 @@ use ::tch::nn::{
 use ::tch::{Device, Kind, TchError, Tensor};
 
 const BATCH: i64 = 32;
-const EPOCHS: i64 = 120;
+const EPOCH_COUNT: i64 = 120;
 const HIDDEN_LAYER_SIZE: i64 = 16;
 const INPUT_LAYER_SIZE: i64 = 6; // vocab length
 const LEARNING_RATE: f64 = 1e-3;
@@ -44,7 +44,7 @@ fn main() -> Result<(), TchError> {
 
   tch::manual_seed(SEED);
 
-  for epoch in 1..=EPOCHS {
+  for epoch in 1..=EPOCH_COUNT {
     let (_x_idx, y_idx, x_oh): (Tensor, Tensor, Tensor) =
       make_batch(BATCH, device);
 
