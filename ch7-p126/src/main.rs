@@ -57,8 +57,7 @@ fn main() -> Result<(), TchError> {
       (Kind::Float, device),
     );
 
-    let mut logits_per_t: Vec<Tensor> =
-      Vec::with_capacity(TIME_STEP_COUNT as usize);
+    let mut logits_per_t: Vec<Tensor> = Vec::with_capacity(TIME_STEP_COUNT);
 
     for time_step_index in 0..TIME_STEP_COUNT {
       let x_t: Tensor = x_one_hot
