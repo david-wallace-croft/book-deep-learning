@@ -3,13 +3,13 @@ use ::tch::nn::{
 };
 use ::tch::{Device, Kind, TchError, Tensor};
 
-const BATCH: i64 = 32;
 const EPOCH_COUNT: i64 = 120;
 const HIDDEN_LAYER_SIZE: i64 = 16;
 const INPUT_LAYER_SIZE: i64 = 6; // vocab length
 const LEARNING_RATE: f64 = 1e-3;
 const SEED: i64 = 42;
-const T_STEPS: i64 = 8;
+const SEQUENCES_PER_BATCH: i64 = 32;
+const TIME_STEPS: i64 = 8;
 
 fn main() -> Result<(), TchError> {
   let device: Device = Device::cuda_if_available();
@@ -46,19 +46,19 @@ fn main() -> Result<(), TchError> {
 
   for epoch in 1..=EPOCH_COUNT {
     let (_x_idx, y_idx, x_oh): (Tensor, Tensor, Tensor) =
-      make_batch(BATCH, device);
+      make_batch(SEQUENCES_PER_BATCH, device);
 
     let mut h: Tensor = Tensor::zeros(
       [
-        BATCH,
+        SEQUENCES_PER_BATCH,
         HIDDEN_LAYER_SIZE,
       ],
       (Kind::Float, device),
     );
 
-    let mut logits_per_t: Vec<Tensor> = Vec::with_capacity(T_STEPS as usize);
+    let mut logits_per_t: Vec<Tensor> = Vec::with_capacity(TIME_STEPS as usize);
 
-    for t in 0..T_STEPS {
+    for t in 0..TIME_STEPS {
       let x_t: Tensor = x_oh.narrow(1, t, 1).squeeze_dim(1);
 
       let a: Tensor = x_t.apply(&wx) + h.apply(&wh);
@@ -74,10 +74,12 @@ fn main() -> Result<(), TchError> {
 
     let loss: Tensor = logits
       .reshape([
-        BATCH * T_STEPS,
+        SEQUENCES_PER_BATCH * TIME_STEPS,
         INPUT_LAYER_SIZE,
       ])
-      .cross_entropy_for_logits(&y_idx.reshape([BATCH * T_STEPS]));
+      .cross_entropy_for_logits(
+        &y_idx.reshape([SEQUENCES_PER_BATCH * TIME_STEPS]),
+      );
 
     optimizer.backward_step(&loss);
 
@@ -85,7 +87,7 @@ fn main() -> Result<(), TchError> {
       make_batch(1, device);
 
     let mut eval_logits_per_t: Vec<Tensor> =
-      Vec::with_capacity(T_STEPS as usize);
+      Vec::with_capacity(TIME_STEPS as usize);
 
     if epoch % 10 == 0 {
       let mut h_eval: Tensor = Tensor::zeros(
@@ -96,7 +98,7 @@ fn main() -> Result<(), TchError> {
         (Kind::Float, device),
       );
 
-      for t in 0..T_STEPS {
+      for t in 0..TIME_STEPS {
         let x_t: Tensor = x_eval_oh.narrow(1, t, 1).squeeze_dim(1);
 
         h_eval = (x_t.apply(&wx) + h_eval.apply(&wh)).tanh();
@@ -142,20 +144,30 @@ fn main() -> Result<(), TchError> {
   Ok(())
 }
 
+// Sets up a sequence prediction task where the goal is to predict the next
+// token ID
 fn make_batch(
-  batch: i64,
+  sequences_per_batch: i64,
   device: Device,
 ) -> (Tensor, Tensor, Tensor) {
+  // Generates random sequences of int64 token indices
+  // ranging from zero to INPUT_LAYER_SIZE minus one inclusive
+  // in a 2D tensor with shape [sequences_per_batch, TIME_STEPS]
   let x_idx: Tensor = Tensor::randint(
     INPUT_LAYER_SIZE,
     [
-      batch, T_STEPS,
+      sequences_per_batch,
+      TIME_STEPS,
     ],
     (Kind::Int64, device),
   );
 
+  // Add one and use the modulo operator to wrap within the max vocabulary size
   let y_idx: Tensor = (&x_idx + 1).remainder(INPUT_LAYER_SIZE);
 
+  // Converts the integer token IDs into a one-hot encoded representation
+  // of shape [sequences_per_batch, TIME_STEPS, INPUT_LAYER_SIZE]
+  // Example: 2 becomes [0., 0., 1., 0.]
   let x_onehot: Tensor = x_idx.one_hot(INPUT_LAYER_SIZE).to_kind(Kind::Float);
 
   (x_idx, y_idx, x_onehot)
