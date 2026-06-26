@@ -83,63 +83,76 @@ fn main() -> Result<(), TchError> {
 
     optimizer.backward_step(&loss);
 
-    let (_x_eval_idx, y_eval_idx, x_eval_oh): (Tensor, Tensor, Tensor) =
-      make_batch(1, device);
-
-    let mut eval_logits_per_t: Vec<Tensor> =
-      Vec::with_capacity(TIME_STEPS as usize);
-
     if epoch % 10 == 0 {
-      let mut h_eval: Tensor = Tensor::zeros(
-        [
-          1,
-          HIDDEN_LAYER_SIZE,
-        ],
-        (Kind::Float, device),
-      );
-
-      for t in 0..TIME_STEPS {
-        let x_t: Tensor = x_eval_oh.narrow(1, t, 1).squeeze_dim(1);
-
-        h_eval = (x_t.apply(&wx) + h_eval.apply(&wh)).tanh();
-
-        eval_logits_per_t.push(h_eval.apply(&wy));
-      }
-
-      let logits_eval: Tensor = Tensor::stack(&eval_logits_per_t, 1);
-
-      let preds: Tensor = logits_eval.argmax(-1, false);
-
-      let preds_vec: Vec<i64> = preds
-        .to_device(Device::Cpu)
-        .view([-1])
-        .iter::<i64>()?
-        .collect();
-
-      let y_vec: Vec<i64> = y_eval_idx
-        .to_device(Device::Cpu)
-        .view([-1])
-        .iter::<i64>()?
-        .collect();
-
-      let correct: usize = preds_vec
-        .iter()
-        .zip(y_vec.iter())
-        .filter(|(a, b)| a == b)
-        .count();
-
-      let acc: f64 = correct as f64 / preds_vec.len() as f64;
-
-      let loss_val: f64 = loss.to_device(Device::Cpu).double_value(&[]);
-
-      println!(
-        "epoch {:3} | loss {:.4} | eval acc {:>5.1}%",
-        epoch,
-        loss_val,
-        acc * 100.
-      );
+      evaluate(device, epoch, &loss, &wh, &wx, &wy)?;
     }
   }
+
+  Ok(())
+}
+
+fn evaluate(
+  device: Device,
+  epoch: i64,
+  loss: &Tensor,
+  wh: &Linear,
+  wx: &Linear,
+  wy: &Linear,
+) -> Result<(), TchError> {
+  let (_x_eval_idx, y_eval_idx, x_eval_oh): (Tensor, Tensor, Tensor) =
+    make_batch(1, device);
+
+  let mut eval_logits_per_t: Vec<Tensor> =
+    Vec::with_capacity(TIME_STEPS as usize);
+
+  let mut h_eval: Tensor = Tensor::zeros(
+    [
+      1,
+      HIDDEN_LAYER_SIZE,
+    ],
+    (Kind::Float, device),
+  );
+
+  for t in 0..TIME_STEPS {
+    let x_t: Tensor = x_eval_oh.narrow(1, t, 1).squeeze_dim(1);
+
+    h_eval = (x_t.apply(wx) + h_eval.apply(wh)).tanh();
+
+    eval_logits_per_t.push(h_eval.apply(wy));
+  }
+
+  let logits_eval: Tensor = Tensor::stack(&eval_logits_per_t, 1);
+
+  let preds: Tensor = logits_eval.argmax(-1, false);
+
+  let preds_vec: Vec<i64> = preds
+    .to_device(Device::Cpu)
+    .view([-1])
+    .iter::<i64>()?
+    .collect();
+
+  let y_vec: Vec<i64> = y_eval_idx
+    .to_device(Device::Cpu)
+    .view([-1])
+    .iter::<i64>()?
+    .collect();
+
+  let correct: usize = preds_vec
+    .iter()
+    .zip(y_vec.iter())
+    .filter(|(a, b)| a == b)
+    .count();
+
+  let acc: f64 = correct as f64 / preds_vec.len() as f64;
+
+  let loss_val: f64 = loss.to_device(Device::Cpu).double_value(&[]);
+
+  println!(
+    "epoch {:3} | loss {:.4} | eval acc {:>5.1}%",
+    epoch,
+    loss_val,
+    acc * 100.
+  );
 
   Ok(())
 }
