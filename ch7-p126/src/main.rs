@@ -3,10 +3,12 @@ use ::tch::nn::{
 };
 use ::tch::{Device, Kind, TchError, Tensor};
 
-const EPOCH_COUNT: usize = 120;
+const EPOCH_COUNT: usize = 240;
 const HIDDEN_LAYER_SIZE: i64 = 16;
-const INPUT_LAYER_SIZE: i64 = VOCABULARY_LENGTH as i64;
+const INPUT_SIZE: i64 = VOCABULARY_LENGTH as i64;
+const INPUT_LAYER_SIZE: i64 = 16;
 const LEARNING_RATE: f64 = 1e-3;
+const OUTPUT_LAYER_SIZE: i64 = VOCABULARY_LENGTH as i64;
 const SEED: i64 = 42;
 const SEQUENCES_PER_BATCH: usize = 32;
 const TIME_STEP_COUNT: usize = 8;
@@ -21,14 +23,14 @@ fn main() -> Result<(), TchError> {
 
   let wx: Linear = nn::linear(
     root_path / "wx",
+    INPUT_SIZE,
     INPUT_LAYER_SIZE,
-    HIDDEN_LAYER_SIZE,
     LinearConfig::default(),
   );
 
   let wh: Linear = nn::linear(
     root_path / "wh",
-    HIDDEN_LAYER_SIZE,
+    INPUT_LAYER_SIZE,
     HIDDEN_LAYER_SIZE,
     LinearConfig::default(),
   );
@@ -36,7 +38,7 @@ fn main() -> Result<(), TchError> {
   let wy: Linear = nn::linear(
     root_path / "wy",
     HIDDEN_LAYER_SIZE,
-    INPUT_LAYER_SIZE,
+    OUTPUT_LAYER_SIZE,
     LinearConfig::default(),
   );
 
@@ -46,10 +48,12 @@ fn main() -> Result<(), TchError> {
   tch::manual_seed(SEED);
 
   for epoch in 1..=EPOCH_COUNT {
-    let (_x_idx, y_idx, x_one_hot): (Tensor, Tensor, Tensor) =
+    let (x_one_hot, y_idx): (Tensor, Tensor) =
       make_batch(SEQUENCES_PER_BATCH, device);
 
-    let mut h: Tensor = Tensor::zeros(
+    // The hidden state h is 32 by 16 and starts off as all zeroes
+
+    let mut hidden_state: Tensor = Tensor::zeros(
       [
         SEQUENCES_PER_BATCH as i64,
         HIDDEN_LAYER_SIZE,
@@ -57,32 +61,94 @@ fn main() -> Result<(), TchError> {
       (Kind::Float, device),
     );
 
-    let mut logits_per_t: Vec<Tensor> = Vec::with_capacity(TIME_STEP_COUNT);
+    let mut logits_per_time_step: Vec<Tensor> =
+      Vec::with_capacity(TIME_STEP_COUNT);
 
     for time_step_index in 0..TIME_STEP_COUNT {
+      // It extracts a slice of the input tensor (x_one_hot) at the current
+      // time step using .narrow(),
+      // and removes the extra dimension using .squeeze_dim()
+      // x_t is a 32 by 6
+
       let x_t: Tensor = x_one_hot
         .narrow(1, time_step_index as i64, 1)
         .squeeze_dim(1);
 
-      let a: Tensor = x_t.apply(&wx) + h.apply(&wh);
+      // println!("{x_t}");
 
-      h = a.tanh();
+      // x_t is a 32 by 6
+      // wx is a 6 by 16
+      // So x_t times wx is a 32 by 16
 
-      let logits_t: Tensor = h.apply(&wy);
+      let a1: Tensor = x_t.apply(&wx);
 
-      logits_per_t.push(logits_t);
+      // println!("{a1}");
+
+      // h is a 32 by 16
+      // wh is a 16 by 16
+      // So h times wh is a 32 by 16
+
+      let a2: Tensor = hidden_state.apply(&wh);
+
+      // a is a 32 by 16
+
+      let a: Tensor = a1 + a2;
+
+      // It computes the next hidden state
+
+      hidden_state = a.tanh();
+
+      // println!("{h}");
+
+      // It passes the new hidden state through an output weight matrix wy to
+      // get the raw unnormalized predictions (logits) for this time step,
+      // then pushes them to the vector
+
+      let logits_at_time_step_t: Tensor = hidden_state.apply(&wy);
+
+      logits_per_time_step.push(logits_at_time_step_t);
     }
 
-    let logits: Tensor = Tensor::stack(&logits_per_t, 1);
+    // logits_per_time_step is a Vec of length 8 containing 32 by 6 Tensors
 
-    let loss: Tensor = logits
-      .reshape([
-        (SEQUENCES_PER_BATCH * TIME_STEP_COUNT) as i64,
-        INPUT_LAYER_SIZE,
-      ])
-      .cross_entropy_for_logits(
-        &y_idx.reshape([(SEQUENCES_PER_BATCH * TIME_STEP_COUNT) as i64]),
-      );
+    // logits is a 32 by 8 by 6 Tensor
+
+    let logits: Tensor = Tensor::stack(&logits_per_time_step, 1);
+
+    // println!("{logits}");
+
+    // logits_reshaped is (32 times 8 = 256) by 6
+
+    let logits_reshaped: Tensor = logits.reshape([
+      (SEQUENCES_PER_BATCH * TIME_STEP_COUNT) as i64,
+      INPUT_SIZE,
+    ]);
+
+    // println!("{logits_reshaped}");
+
+    // y_idx is 32 by 8
+
+    // println!("{y_idx}");
+
+    // y_idx_reshaped is (32 * 8 = 256) by 1
+
+    let y_idx_reshaped: Tensor =
+      y_idx.reshape([(SEQUENCES_PER_BATCH * TIME_STEP_COUNT) as i64]);
+
+    // println!("{y_idx_reshaped}");
+
+    // log_softmax is 256 by 6
+
+    // let log_softmax = logits_reshaped.log_softmax(-1, Kind::Float);
+
+    // println!("{log_softmax}");
+
+    // loss is 1 by 1
+
+    let loss: Tensor =
+      logits_reshaped.cross_entropy_for_logits(&y_idx_reshaped);
+
+    // println!("{loss}");
 
     optimizer.backward_step(&loss);
 
@@ -102,8 +168,7 @@ fn evaluate(
   wx: &Linear,
   wy: &Linear,
 ) -> Result<(), TchError> {
-  let (_x_eval_idx, y_eval_idx, x_eval_one_hot): (Tensor, Tensor, Tensor) =
-    make_batch(1, device);
+  let (x_eval_one_hot, y_eval_idx): (Tensor, Tensor) = make_batch(1, device);
 
   // println!("{x_eval_idx}");
 
@@ -200,7 +265,7 @@ fn evaluate(
   // Divides the number of correct predictions by the total number of items
   // to get the accuracy percentage as a decimal (e.g., 0.85 for 85%)
 
-  let acc: f64 = correct as f64 / preds_vec.len() as f64;
+  let accuracy: f64 = correct as f64 / preds_vec.len() as f64;
 
   // Takes the loss tensor (which represents how poorly/well the model performed
   // during this pass), moves it to the CPU, and extracts it as a standard Rust
@@ -209,10 +274,10 @@ fn evaluate(
   let loss_val: f64 = loss.to_device(Device::Cpu).double_value(&[]);
 
   println!(
-    "epoch {:3} | loss {:.4} | eval acc {:>5.1}%",
+    "epoch {:3} | loss {:.4} | eval accuracy {:>5.1}%",
     epoch,
     loss_val,
-    acc * 100.
+    accuracy * 100.
   );
 
   Ok(())
@@ -223,13 +288,13 @@ fn evaluate(
 fn make_batch(
   sequences_per_batch: usize,
   device: Device,
-) -> (Tensor, Tensor, Tensor) {
+) -> (Tensor, Tensor) {
   // Generates random sequences of int64 token indices
   // ranging from zero to (INPUT_LAYER_SIZE minus one) inclusive
   // in a 2D tensor with shape [sequences_per_batch, TIME_STEPS]
 
   let x_idx: Tensor = Tensor::randint(
-    INPUT_LAYER_SIZE,
+    INPUT_SIZE,
     [
       sequences_per_batch as i64,
       TIME_STEP_COUNT as i64,
@@ -239,13 +304,13 @@ fn make_batch(
 
   // Add one and use the modulo operator to wrap within the max vocabulary size
 
-  let y_idx: Tensor = (&x_idx + 1).remainder(INPUT_LAYER_SIZE);
+  let y_idx: Tensor = (&x_idx + 1).remainder(INPUT_SIZE);
 
   // Converts the integer token IDs into a one-hot encoded representation
   // of shape [sequences_per_batch, TIME_STEPS, INPUT_LAYER_SIZE]
   // Example: 2 becomes [0., 0., 1., 0.]
 
-  let x_one_hot: Tensor = x_idx.one_hot(INPUT_LAYER_SIZE).to_kind(Kind::Float);
+  let x_one_hot: Tensor = x_idx.one_hot(INPUT_SIZE).to_kind(Kind::Float);
 
-  (x_idx, y_idx, x_one_hot)
+  (x_one_hot, y_idx)
 }
