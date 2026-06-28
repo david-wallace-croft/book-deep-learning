@@ -111,8 +111,14 @@ fn evaluate(
 
   // println!("{x_eval_one_hot}");
 
+  // Pre-allocates a vector to store the output predictions (logits) for each
+  // individual time step
+
   let mut eval_logits_per_time_step: Vec<Tensor> =
     Vec::with_capacity(TIME_STEP_COUNT);
+
+  // Initializes the hidden state to a tensor of zeros.
+  // This represents the network's "memory" before it sees any data
 
   let mut h_eval: Tensor = Tensor::zeros(
     [
@@ -123,20 +129,43 @@ fn evaluate(
   );
 
   for time_step_index in 0..TIME_STEP_COUNT {
+    // It extracts a slice of the input tensor (x_eval_one_hot) at the current
+    // time step using .narrow(),
+    // and removes the extra dimension using .squeeze_dim()
+
     let x_t: Tensor = x_eval_one_hot
       .narrow(1, time_step_index as i64, 1)
       .squeeze_dim(1);
 
     // println!("{x_t}");
 
+    // It computes the next hidden state
+
     h_eval = (x_t.apply(wx) + h_eval.apply(wh)).tanh();
+
+    // It passes the new hidden state through an output weight matrix wy to get
+    // the raw unnormalized predictions (logits) for this time step,
+    // then pushes them to the vector
 
     eval_logits_per_time_step.push(h_eval.apply(wy));
   }
 
+  // Combines the list of individual time-step logit tensors back into a single
+  // unified tensor along the time dimension
+
   let logits_eval: Tensor = Tensor::stack(&eval_logits_per_time_step, 1);
 
+  // Finds the index of the highest value along the last dimension (-1).
+  // This converts the model's raw scores into actual class/character
+  // predictions (e.g., if predicting text, it picks the most likely next
+  // character).
+
   let preds: Tensor = logits_eval.argmax(-1, false);
+
+  // Moves the prediction tensor from the GPU/device back to the CPU,
+  // flattens it into a 1D shape (.view([-1])),
+  // and converts it into a standard Rust Vec<i64> so you can easily print or
+  // use the results in the rest of your Rust application
 
   let preds_vec: Vec<i64> = preds
     .to_device(Device::Cpu)
@@ -144,11 +173,23 @@ fn evaluate(
     .iter::<i64>()?
     .collect();
 
+  // The y_eval_idx tensor contains the actual, true labels
+  // (the ground truth targets).
+  // Just like it did for the predictions (preds_vec), this code moves the
+  // target tensor to the CPU,
+  // flattens it into a 1D layout (.view([-1])),
+  // and collects it into a standard Rust vector (Vec<i64>)
+
   let y_vec: Vec<i64> = y_eval_idx
     .to_device(Device::Cpu)
     .view([-1])
     .iter::<i64>()?
     .collect();
+
+  // It pairs up each predicted value from preds_vec with its corresponding true
+  // value from y_vec.
+  // It keeps only the pairs where the prediction matches the true label.
+  // Counts the total number of correct predictions.
 
   let correct: usize = preds_vec
     .iter()
@@ -156,7 +197,14 @@ fn evaluate(
     .filter(|(a, b)| a == b)
     .count();
 
+  // Divides the number of correct predictions by the total number of items
+  // to get the accuracy percentage as a decimal (e.g., 0.85 for 85%)
+
   let acc: f64 = correct as f64 / preds_vec.len() as f64;
+
+  // Takes the loss tensor (which represents how poorly/well the model performed
+  // during this pass), moves it to the CPU, and extracts it as a standard Rust
+  // f64 scalar value.
 
   let loss_val: f64 = loss.to_device(Device::Cpu).double_value(&[]);
 
@@ -179,6 +227,7 @@ fn make_batch(
   // Generates random sequences of int64 token indices
   // ranging from zero to (INPUT_LAYER_SIZE minus one) inclusive
   // in a 2D tensor with shape [sequences_per_batch, TIME_STEPS]
+
   let x_idx: Tensor = Tensor::randint(
     INPUT_LAYER_SIZE,
     [
@@ -189,11 +238,13 @@ fn make_batch(
   );
 
   // Add one and use the modulo operator to wrap within the max vocabulary size
+
   let y_idx: Tensor = (&x_idx + 1).remainder(INPUT_LAYER_SIZE);
 
   // Converts the integer token IDs into a one-hot encoded representation
   // of shape [sequences_per_batch, TIME_STEPS, INPUT_LAYER_SIZE]
   // Example: 2 becomes [0., 0., 1., 0.]
+
   let x_one_hot: Tensor = x_idx.one_hot(INPUT_LAYER_SIZE).to_kind(Kind::Float);
 
   (x_idx, y_idx, x_one_hot)
