@@ -111,7 +111,8 @@ fn evaluate(
 
   // println!("{x_eval_one_hot}");
 
-  let mut eval_logits_per_t: Vec<Tensor> = Vec::with_capacity(TIME_STEP_COUNT);
+  let mut eval_logits_per_time_step: Vec<Tensor> =
+    Vec::with_capacity(TIME_STEP_COUNT);
 
   let mut h_eval: Tensor = Tensor::zeros(
     [
@@ -130,10 +131,10 @@ fn evaluate(
 
     h_eval = (x_t.apply(wx) + h_eval.apply(wh)).tanh();
 
-    eval_logits_per_t.push(h_eval.apply(wy));
+    eval_logits_per_time_step.push(h_eval.apply(wy));
   }
 
-  let logits_eval: Tensor = Tensor::stack(&eval_logits_per_t, 1);
+  let logits_eval: Tensor = Tensor::stack(&eval_logits_per_time_step, 1);
 
   let preds: Tensor = logits_eval.argmax(-1, false);
 
