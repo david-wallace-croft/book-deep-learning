@@ -1,24 +1,25 @@
 use ::tch::nn::{
-  self, Adam, Optimizer, OptimizerConfig, Path, RNN, RNNConfig, VarStore,
+  self, Adam, LSTM, Linear, LinearConfig, Optimizer, OptimizerConfig, Path,
+  RNN, RNNConfig, VarStore,
 };
 use ::tch::{Device, Kind, TchError, Tensor};
+
+const EPOCH_COUNT: usize = 240;
+const HIDDEN_LAYER_SIZE: i64 = 16;
+const INPUT_SIZE: i64 = VOCABULARY_LENGTH as i64;
+const LEARNING_RATE: f64 = 1e-3;
+const OUTPUT_LAYER_SIZE: i64 = VOCABULARY_LENGTH as i64;
+const SEED: i64 = 42;
+const SEQUENCES_PER_BATCH: usize = 32;
+const TIME_STEP_COUNT: usize = 8;
+const VOCABULARY_LENGTH: u8 = 6;
 
 fn main() -> Result<(), TchError> {
   let device: Device = Device::cuda_if_available();
 
-  let vs: VarStore = VarStore::new(device);
+  let var_store: VarStore = VarStore::new(device);
 
-  let root: &Path<'_> = &vs.root();
-
-  let vocab: i64 = 6;
-
-  let hidden: i64 = 16;
-
-  let t_steps: i64 = 8;
-
-  let batch: i64 = 32;
-
-  let epochs: i64 = 120;
+  let root_path: &Path<'_> = &var_store.root();
 
   // let wx: Linear = nn::linear(root / "wx", vocab, hidden, Default::default());
 
@@ -26,24 +27,34 @@ fn main() -> Result<(), TchError> {
 
   // let wy: Linear = nn::linear(root / "wy", hidden, vocab, Default::default());
 
-  let rnn_config = RNNConfig {
+  let rnn_config: RNNConfig = RNNConfig {
     num_layers: 1,
     bidirectional: false,
     batch_first: true,
-    ..Default::default()
+    ..RNNConfig::default()
   };
 
-  let lstm = nn::lstm(root / "lstm", vocab, hidden, rnn_config);
+  let lstm: LSTM = nn::lstm(
+    root_path / "lstm",
+    INPUT_SIZE,
+    HIDDEN_LAYER_SIZE,
+    rnn_config,
+  );
 
-  let wy = nn::linear(root / "wy", hidden, vocab, Default::default());
+  let wy: Linear = nn::linear(
+    root_path / "wy",
+    HIDDEN_LAYER_SIZE,
+    OUTPUT_LAYER_SIZE,
+    LinearConfig::default(),
+  );
 
-  let mut opt: Optimizer = Adam::default().build(&vs, 1e-3)?;
+  let mut opt: Optimizer = Adam::default().build(&var_store, LEARNING_RATE)?;
 
-  tch::manual_seed(42);
+  tch::manual_seed(SEED);
 
-  for epoch in 1..=epochs {
-    let (_x_idx, y_idx, x_oh): (Tensor, Tensor, Tensor) =
-      make_batch(batch, t_steps, vocab, device);
+  for epoch in 1..=EPOCH_COUNT {
+    let (x_one_hot, y_idx): (Tensor, Tensor) =
+      make_batch(SEQUENCES_PER_BATCH, device);
 
     // let mut h: Tensor = Tensor::zeros(
     //   [
@@ -66,7 +77,7 @@ fn main() -> Result<(), TchError> {
     //   logits_per_t.push(logits_t);
     // }
 
-    let (h_seq, _state) = lstm.seq(&x_oh);
+    let (h_seq, _state) = lstm.seq(&x_one_hot);
 
     let logits = h_seq.apply(&wy);
 
@@ -74,15 +85,16 @@ fn main() -> Result<(), TchError> {
 
     let loss: Tensor = logits
       .reshape([
-        batch * t_steps,
-        vocab,
+        (SEQUENCES_PER_BATCH * TIME_STEP_COUNT) as i64,
+        INPUT_SIZE,
       ])
-      .cross_entropy_for_logits(&y_idx.reshape([batch * t_steps]));
+      .cross_entropy_for_logits(
+        &y_idx.reshape([(SEQUENCES_PER_BATCH * TIME_STEP_COUNT) as i64]),
+      );
 
     opt.backward_step(&loss);
 
-    let (_x_eval_idx, y_eval_idx, x_eval_oh): (Tensor, Tensor, Tensor) =
-      make_batch(1, t_steps, vocab, device);
+    let (x_eval_oh, y_eval_idx): (Tensor, Tensor) = make_batch(1, device);
 
     // let mut eval_logits_per_t: Vec<Tensor> =
     //   Vec::with_capacity(t_steps as usize);
@@ -129,7 +141,7 @@ fn main() -> Result<(), TchError> {
         .filter(|(a, b)| a == b)
         .count();
 
-      let acc: f64 = correct as f64 / preds_vec.len() as f64;
+      let accuracy: f64 = correct as f64 / preds_vec.len() as f64;
 
       let loss_val: f64 = loss.to_device(Device::Cpu).double_value(&[]);
 
@@ -137,7 +149,7 @@ fn main() -> Result<(), TchError> {
         "epoch {:3} | loss {:.4} | eval acc {:>5.1}%",
         epoch,
         loss_val,
-        acc * 100.
+        accuracy * 100.
       );
     }
   }
@@ -146,22 +158,31 @@ fn main() -> Result<(), TchError> {
 }
 
 fn make_batch(
-  batch: i64,
-  t_steps: i64,
-  vocab: i64,
+  sequences_per_batch: usize,
   device: Device,
-) -> (Tensor, Tensor, Tensor) {
+) -> (Tensor, Tensor) {
+  // Generates random sequences of int64 token indices
+  // ranging from zero to (INPUT_LAYER_SIZE minus one) inclusive
+  // in a 2D tensor with shape [sequences_per_batch, TIME_STEPS]
+
   let x_idx: Tensor = Tensor::randint(
-    vocab,
+    INPUT_SIZE,
     [
-      batch, t_steps,
+      sequences_per_batch as i64,
+      TIME_STEP_COUNT as i64,
     ],
     (Kind::Int64, device),
   );
 
-  let y_idx: Tensor = (&x_idx + 1).remainder(vocab);
+  // Add one and use the modulo operator to wrap within the max vocabulary size
 
-  let x_onehot: Tensor = x_idx.one_hot(vocab).to_kind(Kind::Float);
+  let y_idx: Tensor = (&x_idx + 1).remainder(INPUT_SIZE);
 
-  (x_idx, y_idx, x_onehot)
+  // Converts the integer token IDs into a one-hot encoded representation
+  // of shape [sequences_per_batch, TIME_STEPS, INPUT_LAYER_SIZE]
+  // Example: 2 becomes [0., 0., 1., 0.]
+
+  let x_one_hot: Tensor = x_idx.one_hot(INPUT_SIZE).to_kind(Kind::Float);
+
+  (x_one_hot, y_idx)
 }
