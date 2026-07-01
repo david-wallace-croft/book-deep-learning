@@ -21,9 +21,18 @@ fn main() -> Result<(), TchError> {
 
   let root_path: &Path<'_> = &var_store.root();
 
+  // Initializes a standard Long Short-Term Memory (LSTM) recurrent neural
+  // network (RNN) and its optimizer using the Rust deep learning framework
+  // tch-rs, the Rust bindings for PyTorch
+
   let rnn_config: RNNConfig = RNNConfig {
+    // A single-layer LSTM (not stacked)
     num_layers: 1,
+    // Data flows in one direction (past to future)
     bidirectional: false,
+    // Specifies that the input data tensors will be shaped as
+    // (batch_size, sequence_length, features) instead of putting the sequence
+    // length first
     batch_first: true,
     ..RNNConfig::default()
   };
@@ -36,14 +45,23 @@ fn main() -> Result<(), TchError> {
   );
 
   let wy: Linear = nn::linear(
+    // The root_path / "lstm" syntax manages the hierarchical naming of the
+    // layer's weights inside the variable store
     root_path / "wy",
     HIDDEN_LAYER_SIZE,
     OUTPUT_LAYER_SIZE,
     LinearConfig::default(),
   );
 
-  let mut optimizer: Optimizer =
-    Adam::default().build(&var_store, LEARNING_RATE)?;
+  // This instantiates an Adam optimizer, a highly popular algorithm for
+  // training deep learning models
+
+  let mut optimizer: Optimizer = Adam::default().build(
+    // It binds the optimizer to a var_store, the container holding all of the
+    // trainable weights from your LSTM and Linear layers
+    &var_store,
+    LEARNING_RATE,
+  )?;
 
   tch::manual_seed(SEED);
 
