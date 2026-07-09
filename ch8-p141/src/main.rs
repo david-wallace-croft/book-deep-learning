@@ -1,10 +1,5 @@
-#![expect(dead_code)]
-#![expect(unused_imports)]
-#![expect(unused_mut)]
-#![expect(unused_variables)]
 use ::tch::nn::{
-  self, Adam, LSTM, LSTMState, Linear, LinearConfig, Optimizer,
-  OptimizerConfig, Path, RNN, RNNConfig, VarStore,
+  self, Adam, ModuleT, Optimizer, OptimizerConfig, Path, Sequential, VarStore,
 };
 use ::tch::{Device, Kind, TchError, Tensor};
 
@@ -24,6 +19,10 @@ fn main() -> Result<(), TchError> {
 
   let var_store_generator: VarStore = VarStore::new(device);
 
+  let d: Sequential = build_discriminator(&var_store_discriminator.root());
+
+  let g: Sequential = build_generator(&var_store_generator.root(), Z_DIM);
+
   let mut optimizer_discriminator: Optimizer =
     Adam::default().build(&var_store_discriminator, LEARNING_RATE)?;
 
@@ -33,10 +32,90 @@ fn main() -> Result<(), TchError> {
   for step in 1..=ITERS {
     let x_real: Tensor = sample_real(BATCH, device)?;
 
-    todo!()
+    let z = Tensor::randn(
+      [
+        BATCH, Z_DIM,
+      ],
+      (Kind::Float, device),
+    );
+
+    let x_fake = g.forward_t(&z, true);
+
+    let d_real_logits = d.forward_t(&x_real, true);
+
+    let d_fake_logits = d.forward_t(&x_fake.detach(), true);
+
+    let loss_d_real = -d_real_logits.log_sigmoid().mean(Kind::Float);
+
+    let loss_d_fake = -(-&d_fake_logits).log_sigmoid().mean(Kind::Float);
+
+    let loss_d = &loss_d_real + &loss_d_fake;
+
+    optimizer_discriminator.backward_step(&loss_d);
+
+    let z2 = Tensor::randn(
+      [
+        BATCH, Z_DIM,
+      ],
+      (Kind::Float, device),
+    );
+
+    let x_fake2 = g.forward_t(&z2, true);
+
+    let d_fake2_logits = d.forward_t(&x_fake2, true);
+
+    let loss_g = -d_fake2_logits.log_sigmoid().mean(Kind::Float);
+
+    optimizer_generator.backward_step(&loss_g);
+
+    if step % PRINT_EVERY == 0 {
+      let ld = loss_d.to_device(Device::Cpu).double_value(&[]);
+
+      let lg = loss_g.to_device(Device::Cpu).double_value(&[]);
+
+      println!("step {step:4} | d_loss {ld:.4} | g_loss {lg:.4}");
+    }
   }
 
-  todo!()
+  let z = Tensor::randn(
+    [
+      10, Z_DIM,
+    ],
+    (Kind::Float, device),
+  );
+
+  let samples = g.forward_t(&z, false).to_device(Device::Cpu);
+
+  let flat: Vec<f32> = samples.view([-1]).try_into().unwrap();
+
+  println!("generated samples (x,y):");
+
+  for i in 0..10 {
+    let x = flat[2 * i];
+
+    let y = flat[2 * i + 1];
+
+    println!("  {i:>2}: [{x:.3}, {y:.3}]");
+  }
+
+  Ok(())
+}
+
+fn build_discriminator(vs: &Path) -> Sequential {
+  nn::seq()
+    .add(nn::linear(vs / "d1", 2, 64, Default::default()))
+    .add_fn(|xs| xs.leaky_relu())
+    .add(nn::linear(vs / "d2", 64, 1, Default::default()))
+}
+
+fn build_generator(
+  vs: &Path,
+  z_dim: i64,
+) -> Sequential {
+  nn::seq()
+    .add(nn::linear(vs / "g1", z_dim, 64, Default::default()))
+    .add_fn(|xs| xs.relu())
+    .add(nn::linear(vs / "g2", 64, 2, Default::default()))
 }
 
 fn sample_real(
