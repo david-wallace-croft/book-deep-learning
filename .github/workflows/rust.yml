@@ -53,7 +53,7 @@ jobs:
         run: |
           source .venv/bin/activate
           # cargo test --all --verbose
-          cargo test --all
+          TORCH_SYS_DOWNLOAD=1 cargo test --all
       - name: Clippy All
         run: |
           cargo clippy --all -- -Dwarnings
