@@ -22,14 +22,14 @@ jobs:
           sudo apt-get install pkg-config libfontconfig1-dev
       - name: Checkout Code
         uses: actions/checkout@v6
-      # - name: Cache Torch
-      #   id: cache-venv
-      #   uses: actions/cache@v5
-      #   with:
-      #     path: .venv
-      #     key: ${{ runner.os }}-venv-torch-${{ hashFiles('Cargo.toml') }}
+      - name: Cache Torch
+        id: cache-venv
+        uses: actions/cache@v5
+        with:
+          path: .venv
+          key: ${{ runner.os }}-venv-torch-${{ hashFiles('Cargo.toml') }}
       - name: Download Torch
-        # if: steps.cache-venv.outputs.cache-hit != 'true'
+        if: steps.cache-venv.outputs.cache-hit != 'true'
         run: |
           python -m venv .venv
           source .venv/bin/activate
