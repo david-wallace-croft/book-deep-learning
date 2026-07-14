@@ -10,6 +10,7 @@ use ::tch::nn::{
 use ::tch::{Device, Kind, Result, TchError, Tensor};
 
 mod encoder_block;
+mod mhsa;
 mod sum_mod_transformer;
 
 const BATCH: i64 = 128;

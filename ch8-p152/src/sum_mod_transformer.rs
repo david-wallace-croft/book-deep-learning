@@ -1,5 +1,5 @@
 use super::encoder_block::EncoderBlock;
-use ::tch::nn::{Embedding, LayerNorm, Linear, Path};
+use ::tch::nn::{self, Embedding, EmbeddingConfig, LayerNorm, Linear, Path};
 use ::tch::{Device, Tensor};
 
 pub struct SumModTransformer {
@@ -27,6 +27,27 @@ impl SumModTransformer {
     dropout_p: f64,
     device: Device,
   ) -> Self {
+    let embed: Embedding = nn::embedding(
+      var_stor / "embed",
+      vocab,
+      d_model,
+      EmbeddingConfig::default(),
+    );
+
+    let mut blocks = Vec::new();
+
+    for i in 0..n_layers {
+      let b = EncoderBlock::new(
+        &(var_stor / format!("enc{}", i)),
+        d_model,
+        n_heads,
+        d_ff,
+        dropout_p,
+      );
+
+      blocks.push(b);
+    }
+
     todo!()
   }
 
