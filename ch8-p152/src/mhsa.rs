@@ -3,6 +3,7 @@ use ::tch::nn::{
   Sequential,
 };
 use ::tch::{Device, Tensor};
+use tch::Kind;
 
 #[expect(clippy::upper_case_acronyms)]
 pub struct MHSA {
@@ -55,15 +56,67 @@ impl MHSA {
     }
   }
 
-  fn forward_t() -> Tensor {
-    todo!()
+  fn combine_heads(
+    &self,
+    x: &Tensor,
+    b: i64,
+    t: i64,
+  ) -> Tensor {
+    x.transpose(1, 2).contiguous().view([
+      b,
+      t,
+      self.n_heads * self.d_head,
+    ])
   }
 
-  fn split_heads() -> Tensor {
-    todo!()
+  fn forward_t(
+    &self,
+    xs: &Tensor,
+    train: bool,
+  ) -> Tensor {
+    let q = xs.apply_t(&self.w_q, train);
+
+    let k = xs.apply_t(&self.w_k, train);
+
+    let v = xs.apply_t(&self.w_v, train);
+
+    let (b, t, _d) = (xs.size()[0], xs.size()[1], xs.size()[2]);
+
+    let q = self.split_heads(&q, b, t);
+
+    let k = self.split_heads(&k, b, t);
+
+    let v = self.split_heads(&v, b, t);
+
+    let scale = (self.d_head as f64).sqrt();
+
+    let scores = q.matmul(&k.transpose(-2, -1)) / scale;
+
+    let mut attn = scores.softmax(-1, Kind::Float);
+
+    if self.dropout_p > 0.0 {
+      attn = attn.dropout(self.dropout_p, train);
+    }
+
+    let context = attn.matmul(&v);
+
+    let concat = self.combine_heads(&context, b, t);
+
+    concat.apply_t(&self.w_o, train)
   }
 
-  fn combine_heads() -> Tensor {
-    todo!()
+  fn split_heads(
+    &self,
+    x: &Tensor,
+    b: i64,
+    t: i64,
+  ) -> Tensor {
+    x.view([
+      b,
+      t,
+      self.n_heads,
+      self.d_head,
+    ])
+    .transpose(1, 2)
   }
 }
