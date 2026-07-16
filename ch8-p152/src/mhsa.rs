@@ -2,8 +2,7 @@ use ::tch::nn::{
   self, Embedding, LayerNorm, LayerNormConfig, Linear, LinearConfig, Path,
   Sequential,
 };
-use ::tch::{Device, Tensor};
-use tch::Kind;
+use ::tch::{Device, Kind, Tensor};
 
 #[expect(clippy::upper_case_acronyms)]
 pub struct MHSA {
@@ -69,7 +68,7 @@ impl MHSA {
     ])
   }
 
-  fn forward_t(
+  pub fn forward_t(
     &self,
     xs: &Tensor,
     train: bool,
