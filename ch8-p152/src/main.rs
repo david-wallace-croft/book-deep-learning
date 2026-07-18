@@ -1,9 +1,5 @@
-// #![expect(dead_code)]
-// #![expect(unused_imports)]
-// #![expect(unused_mut)]
-
 use self::sum_mod_transformer::SumModTransformer;
-use ::tch::nn::{Adam, OptimizerConfig, Path, VarStore};
+use ::tch::nn::{Adam, Optimizer, OptimizerConfig, Path, VarStore};
 use ::tch::{Device, Kind, Result, Tensor};
 
 mod encoder_block;
@@ -37,10 +33,11 @@ fn main() -> Result<()> {
     DROPOUT_P, device,
   );
 
-  let mut opt = Adam::default().build(&var_store, LEARNING_RATE).unwrap();
+  let mut opt: Optimizer =
+    Adam::default().build(&var_store, LEARNING_RATE).unwrap();
 
   for epoch in 1..=EPOCHS {
-    let x_idx = Tensor::randint(
+    let x_idx: Tensor = Tensor::randint(
       VOCAB,
       [
         BATCH, T_STEPS,
@@ -48,7 +45,7 @@ fn main() -> Result<()> {
       (Kind::Int64, device),
     );
 
-    let y = x_idx
+    let y: Tensor = x_idx
       .to_kind(Kind::Float)
       .sum_dim_intlist([1].as_slice(), false, Kind::Float)
       .remainder(N_CLASSES as f64)
@@ -76,9 +73,9 @@ fn main() -> Result<()> {
     }
   }
 
-  let test_b = 8;
+  let test_b: i64 = 8;
 
-  let x_idx = Tensor::randint(
+  let x_idx: Tensor = Tensor::randint(
     VOCAB,
     [
       test_b, T_STEPS,
@@ -86,15 +83,15 @@ fn main() -> Result<()> {
     (Kind::Int64, device),
   );
 
-  let y = x_idx
+  let y: Tensor = x_idx
     .to_kind(Kind::Float)
     .sum_dim_intlist([1].as_slice(), false, Kind::Float)
     .remainder(N_CLASSES as f64)
     .to_kind(Kind::Int64);
 
-  let logits = model.forward_t(&x_idx, false);
+  let logits: Tensor = model.forward_t(&x_idx, false);
 
-  let pred = logits.argmax(-1, false);
+  let pred: Tensor = logits.argmax(-1, false);
 
   let y_cpu_tensor: Tensor = y.to_device(Device::Cpu);
 
@@ -102,7 +99,7 @@ fn main() -> Result<()> {
 
   println!("true labels: {true_labels:?}");
 
-  let pred_cpu_tensor = pred.to_device(Device::Cpu);
+  let pred_cpu_tensor: Tensor = pred.to_device(Device::Cpu);
 
   let pred_labels: Vec<i64> = Vec::<i64>::try_from(pred_cpu_tensor).unwrap();
 
@@ -115,9 +112,10 @@ fn accuracy_from_logits(
   logits: &Tensor,
   y: &Tensor,
 ) -> f64 {
-  let pred = logits.argmax(-1, false);
+  let pred: Tensor = logits.argmax(-1, false);
 
-  let correct = pred.eq_tensor(y).to_kind(Kind::Float).mean(Kind::Float);
+  let correct: Tensor =
+    pred.eq_tensor(y).to_kind(Kind::Float).mean(Kind::Float);
 
   correct.double_value(&[])
 }
