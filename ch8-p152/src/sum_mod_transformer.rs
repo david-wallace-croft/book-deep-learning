@@ -11,6 +11,7 @@ pub struct SumModTransformer {
   pub ln_f: LayerNorm,
   pub head: Linear,
   pub d_model: i64,
+  #[expect(dead_code)]
   pub max_t: i64,
   pub dropout_p: f64,
   pub device: Device,
@@ -75,7 +76,7 @@ impl SumModTransformer {
     }
   }
 
-  fn forward_t(
+  pub fn forward_t(
     &self,
     x_idx: &Tensor,
     train: bool,

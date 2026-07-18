@@ -1,9 +1,8 @@
 use super::mhsa::MHSA;
+use ::tch::Tensor;
 use ::tch::nn::{
-  self, Embedding, LayerNorm, LayerNormConfig, Linear, LinearConfig, Path,
-  Sequential,
+  self, LayerNorm, LayerNormConfig, LinearConfig, Path, Sequential,
 };
-use ::tch::{Device, Tensor};
 
 pub struct EncoderBlock {
   pub ln1: LayerNorm,

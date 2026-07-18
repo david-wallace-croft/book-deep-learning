@@ -1,8 +1,5 @@
-use ::tch::nn::{
-  self, Embedding, LayerNorm, LayerNormConfig, Linear, LinearConfig, Path,
-  Sequential,
-};
-use ::tch::{Device, Kind, Tensor};
+use ::tch::nn::{self, Linear, LinearConfig, Path};
+use ::tch::{Kind, Tensor};
 
 #[expect(clippy::upper_case_acronyms)]
 pub struct MHSA {
@@ -11,6 +8,7 @@ pub struct MHSA {
   w_v: Linear,
   w_o: Linear,
   n_heads: i64,
+  #[expect(dead_code)]
   d_model: i64,
   d_head: i64,
   dropout_p: f64,

@@ -1,13 +1,10 @@
-#![expect(dead_code)]
-#![expect(unused_imports)]
-#![expect(unused_mut)]
-#![expect(unused_variables)]
+// #![expect(dead_code)]
+// #![expect(unused_imports)]
+// #![expect(unused_mut)]
 
 use self::sum_mod_transformer::SumModTransformer;
-use ::tch::nn::{
-  self, Adam, ModuleT, Optimizer, OptimizerConfig, Path, Sequential, VarStore,
-};
-use ::tch::{Device, Kind, Result, TchError, Tensor};
+use ::tch::nn::{Adam, OptimizerConfig, Path, VarStore};
+use ::tch::{Device, Kind, Result, Tensor};
 
 mod encoder_block;
 mod mhsa;
@@ -31,7 +28,7 @@ fn main() -> Result<()> {
 
   let device: Device = Device::cuda_if_available();
 
-  let mut var_store: VarStore = VarStore::new(device);
+  let var_store: VarStore = VarStore::new(device);
 
   let root: &Path<'_> = &var_store.root();
 
@@ -40,5 +37,87 @@ fn main() -> Result<()> {
     DROPOUT_P, device,
   );
 
-  todo!()
+  let mut opt = Adam::default().build(&var_store, LEARNING_RATE).unwrap();
+
+  for epoch in 1..=EPOCHS {
+    let x_idx = Tensor::randint(
+      VOCAB,
+      [
+        BATCH, T_STEPS,
+      ],
+      (Kind::Int64, device),
+    );
+
+    let y = x_idx
+      .to_kind(Kind::Float)
+      .sum_dim_intlist([1].as_slice(), false, Kind::Float)
+      .remainder(N_CLASSES as f64)
+      .to_kind(Kind::Int64);
+
+    let logits: Tensor = model.forward_t(&x_idx, true);
+
+    let loss: Tensor = logits.cross_entropy_for_logits(&y);
+
+    opt.backward_step(&loss);
+
+    if epoch % 10 == 0 || epoch == 1 {
+      let acc: f64 = accuracy_from_logits(&logits, &y);
+
+      let loss_cpu_tensor: Tensor = loss.to_device(Device::Cpu);
+
+      let l: f64 = loss_cpu_tensor.double_value(&[]);
+
+      println!(
+        "epoch {:4} | loss {:6.4} | acc {:5.1}%",
+        epoch,
+        l,
+        acc * 100.
+      );
+    }
+  }
+
+  let test_b = 8;
+
+  let x_idx = Tensor::randint(
+    VOCAB,
+    [
+      test_b, T_STEPS,
+    ],
+    (Kind::Int64, device),
+  );
+
+  let y = x_idx
+    .to_kind(Kind::Float)
+    .sum_dim_intlist([1].as_slice(), false, Kind::Float)
+    .remainder(N_CLASSES as f64)
+    .to_kind(Kind::Int64);
+
+  let logits = model.forward_t(&x_idx, false);
+
+  let pred = logits.argmax(-1, false);
+
+  let y_cpu_tensor: Tensor = y.to_device(Device::Cpu);
+
+  let true_labels: Vec<i64> = Vec::<i64>::try_from(y_cpu_tensor).unwrap();
+
+  println!("true labels: {true_labels:?}");
+
+  let pred_cpu_tensor = pred.to_device(Device::Cpu);
+
+  let pred_labels: Vec<i64> = Vec::<i64>::try_from(pred_cpu_tensor).unwrap();
+
+  println!("pred labels: {pred_labels:?}");
+
+  Ok(())
+}
+
+fn accuracy_from_logits(
+  logits: &Tensor,
+  y: &Tensor,
+) -> f64 {
+  let pred = logits.argmax(-1, false);
+
+  let correct = pred.eq_tensor(y).to_kind(Kind::Float).mean(Kind::Float);
+
+  correct.double_value(&[])
 }
