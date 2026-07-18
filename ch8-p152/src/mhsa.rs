@@ -28,20 +28,24 @@ impl MHSA {
       "d_model must be divisible by n_heads"
     );
 
-    let d_head = d_model / n_heads;
+    let d_head: i64 = d_model / n_heads;
 
-    let linear_cfg = LinearConfig {
+    let linear_cfg: LinearConfig = LinearConfig {
       bias: true,
       ..Default::default()
     };
 
-    let w_q = nn::linear(var_stor / "w_q", d_model, d_model, linear_cfg);
+    let w_q: Linear =
+      nn::linear(var_stor / "w_q", d_model, d_model, linear_cfg);
 
-    let w_k = nn::linear(var_stor / "w_k", d_model, d_model, linear_cfg);
+    let w_k: Linear =
+      nn::linear(var_stor / "w_k", d_model, d_model, linear_cfg);
 
-    let w_v = nn::linear(var_stor / "w_v", d_model, d_model, linear_cfg);
+    let w_v: Linear =
+      nn::linear(var_stor / "w_v", d_model, d_model, linear_cfg);
 
-    let w_o = nn::linear(var_stor / "w_o", d_model, d_model, linear_cfg);
+    let w_o: Linear =
+      nn::linear(var_stor / "w_o", d_model, d_model, linear_cfg);
 
     Self {
       w_q,
@@ -73,33 +77,34 @@ impl MHSA {
     xs: &Tensor,
     train: bool,
   ) -> Tensor {
-    let q = xs.apply_t(&self.w_q, train);
+    let q: Tensor = xs.apply_t(&self.w_q, train);
 
-    let k = xs.apply_t(&self.w_k, train);
+    let k: Tensor = xs.apply_t(&self.w_k, train);
 
-    let v = xs.apply_t(&self.w_v, train);
+    let v: Tensor = xs.apply_t(&self.w_v, train);
 
-    let (b, t, _d) = (xs.size()[0], xs.size()[1], xs.size()[2]);
+    let (b, t, _d): (i64, i64, i64) =
+      (xs.size()[0], xs.size()[1], xs.size()[2]);
 
-    let q = self.split_heads(&q, b, t);
+    let q: Tensor = self.split_heads(&q, b, t);
 
-    let k = self.split_heads(&k, b, t);
+    let k: Tensor = self.split_heads(&k, b, t);
 
-    let v = self.split_heads(&v, b, t);
+    let v: Tensor = self.split_heads(&v, b, t);
 
-    let scale = (self.d_head as f64).sqrt();
+    let scale: f64 = (self.d_head as f64).sqrt();
 
-    let scores = q.matmul(&k.transpose(-2, -1)) / scale;
+    let scores: Tensor = q.matmul(&k.transpose(-2, -1)) / scale;
 
-    let mut attn = scores.softmax(-1, Kind::Float);
+    let mut attn: Tensor = scores.softmax(-1, Kind::Float);
 
     if self.dropout_p > 0.0 {
       attn = attn.dropout(self.dropout_p, train);
     }
 
-    let context = attn.matmul(&v);
+    let context: Tensor = attn.matmul(&v);
 
-    let concat = self.combine_heads(&context, b, t);
+    let concat: Tensor = self.combine_heads(&context, b, t);
 
     concat.apply_t(&self.w_o, train)
   }

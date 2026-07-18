@@ -59,24 +59,24 @@ impl EncoderBlock {
     }
   }
 
-  fn forward_t(
+  pub fn forward_t(
     &self,
     x: &Tensor,
     train: bool,
   ) -> Tensor {
-    let h = x.apply_t(&self.ln1, train);
+    let h: Tensor = x.apply_t(&self.ln1, train);
 
-    let mut h = self.attn.forward_t(&h, train);
+    let mut h: Tensor = self.attn.forward_t(&h, train);
 
     if self.dropout_p > 0. {
       h = h.dropout(self.dropout_p, train);
     }
 
-    let x = x + h;
+    let x: Tensor = x + h;
 
-    let h2 = x.apply_t(&self.ln2, train).apply_t(&self.ffn, train);
+    let h2: Tensor = x.apply_t(&self.ln2, train).apply_t(&self.ffn, train);
 
-    let h2 = if self.dropout_p > 0. {
+    let h2: Tensor = if self.dropout_p > 0. {
       h2.dropout(self.dropout_p, train)
     } else {
       h2

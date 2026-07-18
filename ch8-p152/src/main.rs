@@ -35,7 +35,7 @@ fn main() -> Result<()> {
 
   let root: &Path<'_> = &var_store.root();
 
-  let model = SumModTransformer::new(
+  let model: SumModTransformer = SumModTransformer::new(
     root, VOCAB, D_MODEL, N_HEADS, D_FF, N_LAYERS, N_CLASSES, T_STEPS,
     DROPOUT_P, device,
   );
