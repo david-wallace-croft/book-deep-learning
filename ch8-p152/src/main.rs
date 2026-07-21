@@ -112,10 +112,35 @@ fn accuracy_from_logits(
   logits: &Tensor,
   y: &Tensor,
 ) -> f64 {
+  // Logits is a 128 by 5 matrix of positive and negative float values
+  // println!("logits: {logits}");
+
+  // y is a vector of 128 integer values
+  // println!("y: {y}");
+
+  // Returns the indices of the max value of all elements in the input tensor
+  // https://docs.pytorch.org/docs/main/generated/torch.argmax.html
+  // The first argument is the dimension to reduce
   let pred: Tensor = logits.argmax(-1, false);
 
-  let correct: Tensor =
-    pred.eq_tensor(y).to_kind(Kind::Float).mean(Kind::Float);
+  // pred is a vector of 128 integer values
+  // println!("pred: {pred}");
 
+  let correct_bool: Tensor = pred.eq_tensor(y);
+
+  // correct_bool is a vector of 128 boolean values
+  // println!("correct_bool: {correct_bool}");
+
+  let correct_float: Tensor = correct_bool.to_kind(Kind::Float);
+
+  // correct float is a vector 128 float values, each either zero or one
+  // println!("correct_float: {correct_float}");
+
+  let correct: Tensor = correct_float.mean(Kind::Float);
+
+  // correct is a scalar
+  // println!("correct: {correct}");
+
+  // Returns a double value on tensors holding a single element
   correct.double_value(&[])
 }
