@@ -5,6 +5,9 @@ use ::tch::nn::{
 };
 use ::tch::{Device, Kind, Tensor};
 
+/// A value added to the LayerNorm denominator for numerical stability
+const EPSILON: f64 = 1e-5;
+
 pub struct SumModTransformer {
   pub embed: Embedding,
   pub blocks: Vec<EncoderBlock>,
@@ -52,11 +55,12 @@ impl SumModTransformer {
       blocks.push(b);
     }
 
+    // https://docs.pytorch.org/docs/main/generated/torch.nn.LayerNorm.html
     let ln_f: LayerNorm = nn::layer_norm(
       var_stor / "ln_f",
       vec![d_model],
       LayerNormConfig {
-        eps: 1e-5,
+        eps: EPSILON,
         ..Default::default()
       },
     );
