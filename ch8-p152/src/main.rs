@@ -6,49 +6,65 @@ mod encoder_block;
 mod mhsa;
 mod sum_mod_transformer;
 
-const BATCH: i64 = 128;
-const D_FF: i64 = 256;
-const D_MODEL: i64 = 64;
-const DROPOUT_P: f64 = 0.1;
-const EPOCHS: i64 = 300;
+const BATCH_SIZE: i64 = 128;
+const CLASS_COUNT: i64 = 5;
+const DROPOUT_PROBABILITY: f64 = 0.1;
+const EPOCHS: i64 = 30;
+const FF_DIMENSIONS: i64 = 256;
+const HEADS: i64 = 4;
+const LAYERS: i64 = 2;
 const LEARNING_RATE: f64 = 1e-3;
-const N_CLASSES: i64 = 5;
-const N_HEADS: i64 = 4;
-const N_LAYERS: i64 = 2;
-const SEED: i64 = 42;
-const T_STEPS: i64 = 16;
-const VOCAB: i64 = 10;
+const MODEL_DIMENSIONS: i64 = 64;
+const RANDOM_SEED: i64 = 42;
+const TIME_STEPS: i64 = 16;
+const VOCABULARY_SIZE: i64 = 10;
 
 fn main() -> Result<()> {
-  tch::manual_seed(SEED);
+  tch::manual_seed(RANDOM_SEED);
 
   let device: Device = Device::cuda_if_available();
+
+  // println!("device: {device:?}");
 
   let var_store: VarStore = VarStore::new(device);
 
   let root_path: &Path<'_> = &var_store.root();
 
   let model: SumModTransformer = SumModTransformer::new(
-    root_path, VOCAB, D_MODEL, N_HEADS, D_FF, N_LAYERS, N_CLASSES, T_STEPS,
-    DROPOUT_P, device,
+    root_path,
+    VOCABULARY_SIZE,
+    MODEL_DIMENSIONS,
+    HEADS,
+    FF_DIMENSIONS,
+    LAYERS,
+    CLASS_COUNT,
+    TIME_STEPS,
+    DROPOUT_PROBABILITY,
+    device,
   );
 
   let mut opt: Optimizer =
     Adam::default().build(&var_store, LEARNING_RATE).unwrap();
 
   for epoch in 1..=EPOCHS {
+    // Returns a tensor filled with random integers generated uniformly between
+    // low (inclusive) and high (exclusive).
+    // https://docs.pytorch.org/docs/main/generated/torch.randint.html
     let x_idx: Tensor = Tensor::randint(
-      VOCAB,
+      VOCABULARY_SIZE,
       [
-        BATCH, T_STEPS,
+        BATCH_SIZE, TIME_STEPS,
       ],
       (Kind::Int64, device),
     );
 
+    // x_idx is [[128, 16], Int64] with random values between 0 and 9 inclusive
+    // println!("x_idx: {x_idx}");
+
     let y: Tensor = x_idx
       .to_kind(Kind::Float)
       .sum_dim_intlist([1].as_slice(), false, Kind::Float)
-      .remainder(N_CLASSES as f64)
+      .remainder(CLASS_COUNT as f64)
       .to_kind(Kind::Int64);
 
     let logits: Tensor = model.forward_t(&x_idx, true);
@@ -76,9 +92,9 @@ fn main() -> Result<()> {
   let test_b: i64 = 8;
 
   let x_idx: Tensor = Tensor::randint(
-    VOCAB,
+    VOCABULARY_SIZE,
     [
-      test_b, T_STEPS,
+      test_b, TIME_STEPS,
     ],
     (Kind::Int64, device),
   );
@@ -86,7 +102,7 @@ fn main() -> Result<()> {
   let y: Tensor = x_idx
     .to_kind(Kind::Float)
     .sum_dim_intlist([1].as_slice(), false, Kind::Float)
-    .remainder(N_CLASSES as f64)
+    .remainder(CLASS_COUNT as f64)
     .to_kind(Kind::Int64);
 
   let logits: Tensor = model.forward_t(&x_idx, false);

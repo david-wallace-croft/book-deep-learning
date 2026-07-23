@@ -60,12 +60,31 @@ impl MHSA {
   fn combine_heads(
     &self,
     x: &Tensor,
-    b: i64,
-    t: i64,
+    batch_size: i64,
+    time_steps: i64,
   ) -> Tensor {
-    x.transpose(1, 2).contiguous().view([
-      b,
-      t,
+    // x is [[128, 4, 16, 16], Float]
+    // println!("x: {x}");
+
+    // Returns a tensor that is a transposed version of input.
+    // The given dimensions dim0 and dim1 are swapped.
+    // https://docs.pytorch.org/docs/main/generated/torch.transpose.html
+    let x_transpose: Tensor = x.transpose(1, 2);
+
+    // x_transpose is [[128, 16, 4, 16], Float]
+    // println!("x_transpose: {x_transpose}");
+
+    // Returns a contiguous in memory tensor containing the same data as self
+    // tensor.
+    // https://docs.pytorch.org/docs/main/generated/torch.Tensor.contiguous.html
+    let x_contiguous: Tensor = x_transpose.contiguous();
+
+    // Returns a new tensor with the same data as the self tensor but of a
+    // different shape.
+    // https://docs.pytorch.org/docs/main/generated/torch.Tensor.view.html
+    x_contiguous.view([
+      batch_size,
+      time_steps,
       self.n_heads * self.d_head,
     ])
   }
@@ -110,15 +129,27 @@ impl MHSA {
   fn split_heads(
     &self,
     x: &Tensor,
-    b: i64,
-    t: i64,
+    batch_size: i64,
+    time_steps: i64,
   ) -> Tensor {
-    x.view([
-      b,
-      t,
+    // x is [[128, 16, 64], Float]
+    // println!("x: {x}");
+
+    let x_view: Tensor = x.view([
+      batch_size,
+      time_steps,
       self.n_heads,
       self.d_head,
-    ])
-    .transpose(1, 2)
+    ]);
+
+    // x_view is [[128, 16, 4, 16], Float]
+    // println!("x_view: {x_view}");
+
+    let x_transpose: Tensor = x_view.transpose(1, 2);
+
+    // x_transpose is [[128, 4, 16, 16], Float]
+    // println!("x_transpose: {x_transpose}");
+
+    x_transpose
   }
 }

@@ -6,17 +6,17 @@ use ::tch::nn::{
 use ::tch::{Device, Kind, Tensor};
 
 /// A value added to the LayerNorm denominator for numerical stability
-const EPSILON: f64 = 1e-5;
+const STABILITY_EPSILON: f64 = 1e-5;
 
 pub struct SumModTransformer {
   pub embed: Embedding,
   pub blocks: Vec<EncoderBlock>,
   pub ln_f: LayerNorm,
   pub head: Linear,
-  pub d_model: i64,
+  pub model_dimensions: i64,
   #[expect(dead_code)]
-  pub max_t: i64,
-  pub dropout_p: f64,
+  pub time_steps: i64,
+  pub dropout_probability: f64,
   pub device: Device,
 }
 
@@ -24,32 +24,32 @@ impl SumModTransformer {
   #[expect(clippy::too_many_arguments)]
   pub fn new(
     var_stor: &Path,
-    vocab: i64,
-    d_model: i64,
-    n_heads: i64,
-    d_ff: i64,
-    n_layers: i64,
-    n_classes: i64,
-    max_t: i64,
-    dropout_p: f64,
+    vocabulary_size: i64,
+    model_dimensions: i64,
+    heads: i64,
+    ff_dimensions: i64,
+    layers: i64,
+    classes: i64,
+    time_steps: i64,
+    dropout_probability: f64,
     device: Device,
   ) -> Self {
     let embed: Embedding = nn::embedding(
       var_stor / "embed",
-      vocab,
-      d_model,
+      vocabulary_size,
+      model_dimensions,
       EmbeddingConfig::default(),
     );
 
     let mut blocks: Vec<EncoderBlock> = Vec::new();
 
-    for i in 0..n_layers {
+    for i in 0..layers {
       let b: EncoderBlock = EncoderBlock::new(
         &(var_stor / format!("enc{}", i)),
-        d_model,
-        n_heads,
-        d_ff,
-        dropout_p,
+        model_dimensions,
+        heads,
+        ff_dimensions,
+        dropout_probability,
       );
 
       blocks.push(b);
@@ -58,24 +58,28 @@ impl SumModTransformer {
     // https://docs.pytorch.org/docs/main/generated/torch.nn.LayerNorm.html
     let ln_f: LayerNorm = nn::layer_norm(
       var_stor / "ln_f",
-      vec![d_model],
+      vec![model_dimensions],
       LayerNormConfig {
-        eps: EPSILON,
+        eps: STABILITY_EPSILON,
         ..Default::default()
       },
     );
 
-    let head: Linear =
-      nn::linear(var_stor / "head", d_model, n_classes, Default::default());
+    let head: Linear = nn::linear(
+      var_stor / "head",
+      model_dimensions,
+      classes,
+      Default::default(),
+    );
 
     Self {
       embed,
       blocks,
       ln_f,
       head,
-      d_model,
-      max_t,
-      dropout_p,
+      model_dimensions,
+      time_steps,
+      dropout_probability,
       device,
     }
   }
@@ -89,14 +93,14 @@ impl SumModTransformer {
 
     let pe: Tensor = SumModTransformer::sinusoidal_positional_encoding(
       t,
-      self.d_model,
+      self.model_dimensions,
       self.device,
     );
 
     let mut x: Tensor = self.embed.forward(x_idx) + pe;
 
-    if self.dropout_p > 0. {
-      x = x.dropout(self.dropout_p, train);
+    if self.dropout_probability > 0. {
+      x = x.dropout(self.dropout_probability, train);
     }
 
     for b in &self.blocks {
@@ -111,22 +115,32 @@ impl SumModTransformer {
   }
 
   fn sinusoidal_positional_encoding(
-    t_steps: i64,
-    d_model: i64,
+    time_steps: i64,
+    model_dimensions: i64,
     device: Device,
   ) -> Tensor {
     assert!(
-      d_model % 2 == 0,
-      "d_model must be even for sine/cosine split"
+      model_dimensions % 2 == 0,
+      "Model dimensions must be even for sine/cosine split"
     );
 
+    // Returns a 1-D tensor of size [(end − start) / step]⌉ with values from the
+    // interval [start, end) taken with common difference step beginning from
+    // start.
+    // https://docs.pytorch.org/docs/main/generated/torch.arange.html
     let pos: Tensor =
-      Tensor::arange(t_steps, (Kind::Float, device)).unsqueeze(1);
+      Tensor::arange(time_steps, (Kind::Float, device)).unsqueeze(1);
 
-    let i: Tensor = Tensor::arange(d_model / 2, (Kind::Float, device));
+    // pos is a [[16, 1], Float] with values 0, 1, 2, [...], 15
+    // println!("pos: {pos}");
+
+    let i: Tensor = Tensor::arange(model_dimensions / 2, (Kind::Float, device));
+
+    // i is a [[32], Float] with values 0, 1, 2, [...], 31
+    // println!("i: {i}");
 
     let inv_freq: Tensor =
-      ((-10_000.0_f64.ln() * 2. / d_model as f64) as f32 * &i).exp();
+      ((-10_000.0_f64.ln() * 2. / model_dimensions as f64) as f32 * &i).exp();
 
     let angles: Tensor = &pos * inv_freq.unsqueeze(0);
 
