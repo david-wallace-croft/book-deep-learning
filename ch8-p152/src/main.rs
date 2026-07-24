@@ -3,13 +3,16 @@ use ::tch::nn::{Adam, Optimizer, OptimizerConfig, Path, VarStore};
 use ::tch::{Device, Kind, Result, Tensor};
 
 mod encoder_block;
-mod mhsa;
+mod multi_head_self_attention;
 mod sum_mod_transformer;
+
+// Accuracy does not significantly improve at these settings:
+// EPOCHS = 10_000, FF_DIMENSIONS = 1_024, MODEL_DIMENSIONS = 256
 
 const BATCH_SIZE: i64 = 128;
 const CLASS_COUNT: i64 = 5;
 const DROPOUT_PROBABILITY: f64 = 0.1;
-const EPOCHS: i64 = 30;
+const EPOCHS: i64 = 300;
 const FF_DIMENSIONS: i64 = 256;
 const HEADS: i64 = 4;
 const LAYERS: i64 = 2;

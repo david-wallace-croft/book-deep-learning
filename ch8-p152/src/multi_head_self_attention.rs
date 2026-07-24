@@ -1,8 +1,7 @@
 use ::tch::nn::{self, Linear, LinearConfig, Path};
 use ::tch::{Kind, Tensor};
 
-#[expect(clippy::upper_case_acronyms)]
-pub struct MHSA {
+pub struct MultiHeadSelfAttention {
   w_q: Linear,
   w_k: Linear,
   w_v: Linear,
@@ -14,7 +13,7 @@ pub struct MHSA {
   dropout_p: f64,
 }
 
-impl MHSA {
+impl MultiHeadSelfAttention {
   pub fn new(
     var_stor: &Path,
     d_model: i64,

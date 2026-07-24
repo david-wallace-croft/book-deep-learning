@@ -1,60 +1,67 @@
-use super::mhsa::MHSA;
+use super::multi_head_self_attention::MultiHeadSelfAttention;
 use ::tch::Tensor;
 use ::tch::nn::{
   self, LayerNorm, LayerNormConfig, LinearConfig, Path, Sequential,
 };
 
+const STABILITY_EPSILON: f64 = 1e-5;
+
 pub struct EncoderBlock {
-  pub ln1: LayerNorm,
-  pub ln2: LayerNorm,
-  pub attn: MHSA,
-  pub ffn: Sequential,
-  pub dropout_p: f64,
+  pub dropout_probability: f64,
+  pub feed_forward_network: Sequential,
+  pub layer_norm_1: LayerNorm,
+  pub layer_norm_2: LayerNorm,
+  pub multi_head_self_attention: MultiHeadSelfAttention,
 }
 
 impl EncoderBlock {
   pub fn new(
     var_stor: &Path,
-    d_model: i64,
-    n_heads: i64,
-    d_ff: i64,
-    dropout_p: f64,
+    model_dimensions: i64,
+    heads: i64,
+    ff_dimensions: i64,
+    dropout_probability: f64,
   ) -> Self {
     let ln_cfg: LayerNormConfig = LayerNormConfig {
-      eps: 1e-5,
+      eps: STABILITY_EPSILON,
       ..Default::default()
     };
 
-    let ln1: LayerNorm =
-      nn::layer_norm(var_stor / "ln1", vec![d_model], ln_cfg);
+    let layer_norm_1: LayerNorm =
+      nn::layer_norm(var_stor / "ln1", vec![model_dimensions], ln_cfg);
 
-    let ln2: LayerNorm =
-      nn::layer_norm(var_stor / "ln2", vec![d_model], ln_cfg);
+    let layer_norm_2: LayerNorm =
+      nn::layer_norm(var_stor / "ln2", vec![model_dimensions], ln_cfg);
 
-    let attn: MHSA =
-      MHSA::new(&(var_stor / "attn"), d_model, n_heads, dropout_p);
+    let multi_head_self_attention: MultiHeadSelfAttention =
+      MultiHeadSelfAttention::new(
+        &(var_stor / "attn"),
+        model_dimensions,
+        heads,
+        dropout_probability,
+      );
 
-    let ffn: Sequential = nn::seq()
+    let feed_forward_network: Sequential = nn::seq()
       .add(nn::linear(
         var_stor / "ff1",
-        d_model,
-        d_ff,
+        model_dimensions,
+        ff_dimensions,
         LinearConfig::default(),
       ))
       .add_fn(|x: &Tensor| x.gelu("tanh"))
       .add(nn::linear(
         var_stor / "ff2",
-        d_ff,
-        d_model,
+        ff_dimensions,
+        model_dimensions,
         LinearConfig::default(),
       ));
 
     Self {
-      ln1,
-      ln2,
-      attn,
-      ffn,
-      dropout_p,
+      layer_norm_1,
+      layer_norm_2,
+      multi_head_self_attention,
+      feed_forward_network,
+      dropout_probability,
     }
   }
 
@@ -63,20 +70,31 @@ impl EncoderBlock {
     x: &Tensor,
     train: bool,
   ) -> Tensor {
-    let h: Tensor = x.apply_t(&self.ln1, train);
+    // Applies Layer Normalization over a mini-batch of inputs.
+    // https://docs.pytorch.org/docs/main/generated/torch.nn.LayerNorm.html
+    // Applies the function callable to each element in the tensor, replacing
+    // each element with the value returned by callable.
+    // https://docs.pytorch.org/docs/main/generated/torch.Tensor.apply_.html
+    // apply_t() might be an implementation of the Visitor pattern.
+    let h: Tensor = x.apply_t(&self.layer_norm_1, train);
 
-    let mut h: Tensor = self.attn.forward_t(&h, train);
+    let mut h: Tensor = self.multi_head_self_attention.forward_t(&h, train);
 
-    if self.dropout_p > 0. {
-      h = h.dropout(self.dropout_p, train);
+    if self.dropout_probability > 0. {
+      h = h.dropout(self.dropout_probability, train);
     }
 
     let x: Tensor = x + h;
 
-    let h2: Tensor = x.apply_t(&self.ln2, train).apply_t(&self.ffn, train);
+    let h2: Tensor = x
+      .apply_t(&self.layer_norm_2, train)
+      .apply_t(&self.feed_forward_network, train);
 
-    let h2: Tensor = if self.dropout_p > 0. {
-      h2.dropout(self.dropout_p, train)
+    let h2: Tensor = if self.dropout_probability > 0. {
+      // During training, randomly zeroes some of the elements of the input
+      // tensor with probability p.
+      // https://docs.pytorch.org/docs/main/generated/torch.nn.Dropout.html
+      h2.dropout(self.dropout_probability, train)
     } else {
       h2
     };
