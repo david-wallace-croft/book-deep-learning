@@ -86,4 +86,4 @@ rand_distr = "=0.6.0"
 rayon = "=1.12.0"
 # Update the PyTorch version in the GitHub action when tch hits 0.25.0
 tch = "=0.24.0"
-tokio = "=1.53.0"
+tokio = "=1.53.1"

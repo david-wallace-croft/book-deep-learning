@@ -12,12 +12,13 @@ mod sum_mod_transformer;
 const BATCH_SIZE: i64 = 128;
 const CLASS_COUNT: i64 = 5;
 const DROPOUT_PROBABILITY: f64 = 0.1;
-const EPOCHS: i64 = 300;
+const EPOCHS: usize = 30;
 const FEED_FORWARD_DIMENSIONS: i64 = 256;
 const HEADS: i64 = 4;
 const LAYERS: i64 = 2;
 const LEARNING_RATE: f64 = 1e-3;
 const MODEL_DIMENSIONS: i64 = 64;
+const PRINT_INTERVAL: usize = 10;
 const RANDOM_SEED: i64 = 42;
 const TIME_STEPS: i64 = 16;
 const VOCABULARY_SIZE: i64 = 10;
@@ -95,19 +96,14 @@ fn main() -> Result<()> {
 
     optimizer.backward_step(&loss);
 
-    if epoch % 10 == 0 || epoch == 1 {
-      let acc: f64 = accuracy_from_logits(&logits, &y);
+    if epoch % PRINT_INTERVAL == 0 {
+      let accuracy: f64 = 100. * accuracy_from_logits(&logits, &y);
 
       let loss_cpu_tensor: Tensor = loss.to_device(Device::Cpu);
 
-      let l: f64 = loss_cpu_tensor.double_value(&[]);
+      let loss: f64 = loss_cpu_tensor.double_value(&[]);
 
-      println!(
-        "epoch {:4} | loss {:6.4} | acc {:5.1}%",
-        epoch,
-        l,
-        acc * 100.
-      );
+      println!("epoch {epoch} | loss {loss:.3} | accuracy {accuracy:.1}%");
     }
   }
 
