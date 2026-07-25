@@ -19,7 +19,7 @@ impl EncoderBlock {
     var_stor: &Path,
     model_dimensions: i64,
     heads: i64,
-    ff_dimensions: i64,
+    feed_forward_dimensions: i64,
     dropout_probability: f64,
   ) -> Self {
     let ln_cfg: LayerNormConfig = LayerNormConfig {
@@ -45,13 +45,13 @@ impl EncoderBlock {
       .add(nn::linear(
         var_stor / "ff1",
         model_dimensions,
-        ff_dimensions,
+        feed_forward_dimensions,
         LinearConfig::default(),
       ))
       .add_fn(|x: &Tensor| x.gelu("tanh"))
       .add(nn::linear(
         var_stor / "ff2",
-        ff_dimensions,
+        feed_forward_dimensions,
         model_dimensions,
         LinearConfig::default(),
       ));

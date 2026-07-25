@@ -7,13 +7,13 @@ mod multi_head_self_attention;
 mod sum_mod_transformer;
 
 // Accuracy does not significantly improve at these settings:
-// EPOCHS = 10_000, FF_DIMENSIONS = 1_024, MODEL_DIMENSIONS = 256
+// EPOCHS = 10_000, FEED_FORWARD_DIMENSIONS = 1_024, MODEL_DIMENSIONS = 256
 
 const BATCH_SIZE: i64 = 128;
 const CLASS_COUNT: i64 = 5;
 const DROPOUT_PROBABILITY: f64 = 0.1;
 const EPOCHS: i64 = 300;
-const FF_DIMENSIONS: i64 = 256;
+const FEED_FORWARD_DIMENSIONS: i64 = 256;
 const HEADS: i64 = 4;
 const LAYERS: i64 = 2;
 const LEARNING_RATE: f64 = 1e-3;
@@ -38,7 +38,7 @@ fn main() -> Result<()> {
     VOCABULARY_SIZE,
     MODEL_DIMENSIONS,
     HEADS,
-    FF_DIMENSIONS,
+    FEED_FORWARD_DIMENSIONS,
     LAYERS,
     CLASS_COUNT,
     TIME_STEPS,
@@ -46,7 +46,7 @@ fn main() -> Result<()> {
     device,
   );
 
-  let mut opt: Optimizer =
+  let mut optimizer: Optimizer =
     Adam::default().build(&var_store, LEARNING_RATE).unwrap();
 
   for epoch in 1..=EPOCHS {
@@ -64,17 +64,36 @@ fn main() -> Result<()> {
     // x_idx is [[128, 16], Int64] with random values between 0 and 9 inclusive
     // println!("x_idx: {x_idx}");
 
-    let y: Tensor = x_idx
-      .to_kind(Kind::Float)
-      .sum_dim_intlist([1].as_slice(), false, Kind::Float)
-      .remainder(CLASS_COUNT as f64)
-      .to_kind(Kind::Int64);
+    let x_idx_float: Tensor = x_idx.to_kind(Kind::Float);
+
+    // x_idx_float is [[128, 16], Float] with random values between 0. and 9.
+    // println!("x_idx_float: {x_idx_float}");
+
+    // Returns the sum of each row of the input tensor in the given dimension
+    // https://docs.pytorch.org/docs/main/generated/torch.sum.html
+    let x_sum: Tensor =
+      x_idx_float.sum_dim_intlist([1].as_slice(), false, Kind::Float);
+
+    // x_sum is [[128, Float] where the values are the values of the 16
+    // println!("x_sum: {x_sum}");
+
+    // The sum values are mapped to a class value by calculating the remainder
+    let y: Tensor = x_sum.remainder(CLASS_COUNT as f64).to_kind(Kind::Int64);
+
+    // y is [[128], Int64] where the values are between 0 and 4 inclusive
+    // println!("y: {y}");
 
     let logits: Tensor = model.forward_t(&x_idx, true);
 
+    // logits is [[128, 5], Float] where the values are positive and negative
+    // println!("logits: {logits}");
+
     let loss: Tensor = logits.cross_entropy_for_logits(&y);
 
-    opt.backward_step(&loss);
+    // loss is a scalar positive number
+    // println!("loss: {loss}");
+
+    optimizer.backward_step(&loss);
 
     if epoch % 10 == 0 || epoch == 1 {
       let acc: f64 = accuracy_from_logits(&logits, &y);
