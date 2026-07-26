@@ -22,16 +22,22 @@ impl EncoderBlock {
     feed_forward_dimensions: i64,
     dropout_probability: f64,
   ) -> Self {
-    let ln_cfg: LayerNormConfig = LayerNormConfig {
+    let layer_norm_config: LayerNormConfig = LayerNormConfig {
       eps: STABILITY_EPSILON,
       ..Default::default()
     };
 
-    let layer_norm_1: LayerNorm =
-      nn::layer_norm(var_stor / "ln1", vec![model_dimensions], ln_cfg);
+    let layer_norm_1: LayerNorm = nn::layer_norm(
+      var_stor / "ln1",
+      vec![model_dimensions],
+      layer_norm_config,
+    );
 
-    let layer_norm_2: LayerNorm =
-      nn::layer_norm(var_stor / "ln2", vec![model_dimensions], ln_cfg);
+    let layer_norm_2: LayerNorm = nn::layer_norm(
+      var_stor / "ln2",
+      vec![model_dimensions],
+      layer_norm_config,
+    );
 
     let multi_head_self_attention: MultiHeadSelfAttention =
       MultiHeadSelfAttention::new(
@@ -48,6 +54,8 @@ impl EncoderBlock {
         feed_forward_dimensions,
         LinearConfig::default(),
       ))
+      // Applies the Gaussian Error Linear Units function
+      // https://docs.pytorch.org/docs/main/generated/torch.nn.GELU.html
       .add_fn(|x: &Tensor| x.gelu("tanh"))
       .add(nn::linear(
         var_stor / "ff2",
