@@ -73,9 +73,10 @@ impl EncoderBlock {
     }
   }
 
+  /// A Transformer Encoder Layer using the Pre-LN architecture variant
   pub fn forward_t(
     &self,
-    x: &Tensor,
+    input_x: &Tensor,
     train: bool,
   ) -> Tensor {
     // Applies Layer Normalization over a mini-batch of inputs.
@@ -84,29 +85,32 @@ impl EncoderBlock {
     // each element with the value returned by callable.
     // https://docs.pytorch.org/docs/main/generated/torch.Tensor.apply_.html
     // apply_t() might be an implementation of the Visitor pattern.
-    let h: Tensor = x.apply_t(&self.layer_norm_1, train);
+    let normalized: Tensor = input_x.apply_t(&self.layer_norm_1, train);
 
-    let mut h: Tensor = self.multi_head_self_attention.forward_t(&h, train);
+    let mut attention_output: Tensor =
+      self.multi_head_self_attention.forward_t(&normalized, train);
 
     if self.dropout_probability > 0. {
-      h = h.dropout(self.dropout_probability, train);
+      // During training, randomly zeroes some of the elements of the input
+      // tensor with probability p.
+      // https://docs.pytorch.org/docs/main/generated/torch.nn.Dropout.html
+      attention_output =
+        attention_output.dropout(self.dropout_probability, train);
     }
 
-    let x: Tensor = x + h;
+    let residual_connection_1: Tensor = input_x + attention_output;
 
-    let h2: Tensor = x
+    let h2: Tensor = residual_connection_1
       .apply_t(&self.layer_norm_2, train)
       .apply_t(&self.feed_forward_network, train);
 
     let h2: Tensor = if self.dropout_probability > 0. {
-      // During training, randomly zeroes some of the elements of the input
-      // tensor with probability p.
-      // https://docs.pytorch.org/docs/main/generated/torch.nn.Dropout.html
       h2.dropout(self.dropout_probability, train)
     } else {
       h2
     };
 
-    x + h2
+    // The sum is residual_connection_2
+    residual_connection_1 + h2
   }
 }
