@@ -8,7 +8,7 @@ use ::tch::{Device, Kind, Tensor};
 /// A value added to the LayerNorm denominator for numerical stability
 const STABILITY_EPSILON: f64 = 1e-5;
 
-pub struct SumModTransformer {
+pub struct SumModuloTransformer {
   pub embed: Embedding,
   pub blocks: Vec<EncoderBlock>,
   pub ln_f: LayerNorm,
@@ -20,7 +20,7 @@ pub struct SumModTransformer {
   pub device: Device,
 }
 
-impl SumModTransformer {
+impl SumModuloTransformer {
   #[expect(clippy::too_many_arguments)]
   pub fn new(
     var_stor: &Path,
@@ -91,7 +91,7 @@ impl SumModTransformer {
   ) -> Tensor {
     let t: i64 = x_idx.size()[1];
 
-    let pe: Tensor = SumModTransformer::sinusoidal_positional_encoding(
+    let pe: Tensor = SumModuloTransformer::sinusoidal_positional_encoding(
       t,
       self.model_dimensions,
       self.device,

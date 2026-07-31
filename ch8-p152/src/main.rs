@@ -1,10 +1,10 @@
-use self::sum_mod_transformer::SumModTransformer;
+use self::sum_modulo_transformer::SumModuloTransformer;
 use ::tch::nn::{Adam, Optimizer, OptimizerConfig, Path, VarStore};
 use ::tch::{Device, Kind, Result, Tensor};
 
 mod encoder_block;
 mod multi_head_self_attention;
-mod sum_mod_transformer;
+mod sum_modulo_transformer;
 
 // Accuracy does not significantly improve at these settings:
 // EPOCHS = 10_000, FEED_FORWARD_DIMENSIONS = 1_024, MODEL_DIMENSIONS = 256
@@ -35,7 +35,7 @@ fn main() -> Result<()> {
 
   let root_path: &Path<'_> = &var_store.root();
 
-  let model: SumModTransformer = SumModTransformer::new(
+  let model: SumModuloTransformer = SumModuloTransformer::new(
     root_path,
     VOCABULARY_SIZE,
     MODEL_DIMENSIONS,
