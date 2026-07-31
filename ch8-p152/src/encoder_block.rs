@@ -110,7 +110,10 @@ impl EncoderBlock {
       h2
     };
 
-    // The sum is residual_connection_2
-    residual_connection_1 + h2
+    let residual_connection_2 = residual_connection_1 + h2;
+
+    // No clippy "unnecessary 'let' binding" warning if you put a comment here
+
+    residual_connection_2
   }
 }
