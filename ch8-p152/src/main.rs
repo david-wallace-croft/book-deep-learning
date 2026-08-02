@@ -48,6 +48,8 @@ fn main() -> Result<()> {
     device,
   );
 
+  // Adaptive Moment Estimation (Adam)
+  // https://docs.pytorch.org/docs/main/generated/torch.optim.Adam.html
   let mut optimizer: Optimizer =
     Adam::default().build(&var_store, LEARNING_RATE).unwrap();
 
