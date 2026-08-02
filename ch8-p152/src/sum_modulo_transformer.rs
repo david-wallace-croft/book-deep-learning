@@ -142,8 +142,13 @@ impl SumModuloTransformer {
     let inv_freq: Tensor =
       ((-10_000.0_f64.ln() * 2. / model_dimensions as f64) as f32 * &i).exp();
 
+    // Returns a new tensor with a dimension of size one inserted at the
+    // specified position.
+    // https://docs.pytorch.org/docs/main/generated/torch.unsqueeze.html
     let angles: Tensor = &pos * inv_freq.unsqueeze(0);
 
+    // Concatenates the given sequence of tensors in the given dimension.
+    // https://docs.pytorch.org/docs/main/generated/torch.cat.html
     Tensor::cat(
       &[
         angles.sin(),
