@@ -2,8 +2,13 @@
 #![expect(unused_imports)]
 #![expect(unused_variables)]
 
+use self::example::Example;
+use self::vocab::Vocab;
 use ::tch::nn::{Adam, Optimizer, OptimizerConfig, Path, VarStore};
 use ::tch::{Device, Kind, Result, Tensor};
+
+mod example;
+mod vocab;
 
 const BATCH_SIZE: i64 = 4;
 const D_FF: i64 = 128;
@@ -19,5 +24,9 @@ fn main() -> Result<()> {
 
   let device: Device = Device::Cpu;
 
+  todo!()
+}
+
+fn toy_data(seq_len: usize) -> (Vocab, Vec<Example>) {
   todo!()
 }
