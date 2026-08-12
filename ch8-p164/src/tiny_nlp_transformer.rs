@@ -70,6 +70,24 @@ impl TinyNlpTransformer {
     d_model: i64,
     device: Device,
   ) -> Tensor {
-    todo!()
+    assert!(d_model % 2 == 0, "d_model must be even");
+
+    let pos = Tensor::arange(t_steps, (Kind::Float, device)).unsqueeze(1);
+
+    let i = Tensor::arange(d_model / 2, (Kind::Float, device));
+
+    let inv_freq =
+      ((-10_000.0_f64.ln() * 2. / d_model as f64) as f32 * &i).exp();
+
+    let angles = &pos * inv_freq.unsqueeze(0);
+
+    Tensor::cat(
+      &[
+        angles.sin(),
+        angles.cos(),
+      ],
+      1,
+    )
+    .unsqueeze(0)
   }
 }

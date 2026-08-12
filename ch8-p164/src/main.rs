@@ -1,8 +1,3 @@
-#![expect(dead_code)]
-#![expect(unused_imports)]
-#![expect(unused_mut)]
-#![expect(unused_variables)]
-
 mod encoder_block;
 mod example;
 mod mhsa;
@@ -12,7 +7,7 @@ mod vocab;
 use self::example::Example;
 use self::tiny_nlp_transformer::TinyNlpTransformer;
 use self::vocab::Vocab;
-use ::tch::nn::{Adam, Embedding, Optimizer, OptimizerConfig, Path, VarStore};
+use ::tch::nn::{Adam, OptimizerConfig, VarStore};
 use ::tch::{Device, Kind, Result, Tensor};
 
 const BATCH_SIZE: i64 = 4;
@@ -37,7 +32,7 @@ fn main() -> Result<()> {
 
   // Model
 
-  let mut vs = VarStore::new(device);
+  let vs = VarStore::new(device);
 
   let root = &vs.root();
 
@@ -173,7 +168,7 @@ fn toy_data(seq_len: usize) -> (Vocab, Vec<Example>) {
 
   for s in pos {
     data.push(Example {
-      x: vocab.encode(s, SEQ_LEN),
+      x: vocab.encode(s, seq_len),
       y: 1,
     });
   }

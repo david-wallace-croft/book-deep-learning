@@ -11,7 +11,7 @@ pub struct Mhsa {
 }
 
 impl Mhsa {
-  fn new(
+  pub fn new(
     vs: &Path,
     d_model: i64,
     n_heads: i64,
@@ -44,7 +44,7 @@ impl Mhsa {
     }
   }
 
-  fn forward(
+  pub fn forward(
     &self,
     xs: &Tensor,
     train: bool,
