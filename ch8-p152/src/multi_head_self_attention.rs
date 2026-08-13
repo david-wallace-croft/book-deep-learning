@@ -27,7 +27,7 @@ impl MultiHeadSelfAttention {
 
     let head_dimensions: i64 = model_dimensions / heads;
 
-    let linear_cfg: LinearConfig = LinearConfig {
+    let linear_config: LinearConfig = LinearConfig {
       bias: true,
       ..Default::default()
     };
@@ -36,28 +36,28 @@ impl MultiHeadSelfAttention {
       var_stor / "w_q",
       model_dimensions,
       model_dimensions,
-      linear_cfg,
+      linear_config,
     );
 
     let key_weighting_layer: Linear = nn::linear(
       var_stor / "w_k",
       model_dimensions,
       model_dimensions,
-      linear_cfg,
+      linear_config,
     );
 
     let value_weighting_layer: Linear = nn::linear(
       var_stor / "w_v",
       model_dimensions,
       model_dimensions,
-      linear_cfg,
+      linear_config,
     );
 
     let output_weighting_layer: Linear = nn::linear(
       var_stor / "w_o",
       model_dimensions,
       model_dimensions,
-      linear_cfg,
+      linear_config,
     );
 
     Self {

@@ -2,45 +2,67 @@ use ::tch::nn::{self, Linear, LinearConfig, Path};
 use ::tch::{Kind, Tensor};
 
 pub struct MultiHeadSelfAttention {
-  w_q: Linear,
-  w_k: Linear,
-  w_v: Linear,
-  w_o: Linear,
-  n_heads: i64,
-  d_head: i64,
+  query_weighting_layer: Linear,
+  key_weighting_layer: Linear,
+  value_weighting_layer: Linear,
+  output_weighting_layer: Linear,
+  heads: i64,
+  head_dimensions: i64,
 }
 
 impl MultiHeadSelfAttention {
   pub fn new(
-    vs: &Path,
-    d_model: i64,
-    n_heads: i64,
+    var_stor: &Path,
+    model_dimensions: i64,
+    heads: i64,
   ) -> Self {
     assert!(
-      d_model % n_heads == 0,
-      "d_model must be evenly divisible by n_heads"
+      model_dimensions % heads == 0,
+      "model_dimensions must be evenly divisible by heads"
     );
 
-    let cfg = LinearConfig {
+    let head_dimensions: i64 = model_dimensions / heads;
+
+    let linear_config: LinearConfig = LinearConfig {
       bias: true,
       ..Default::default()
     };
 
-    let w_q = nn::linear(vs / "w_q", d_model, d_model, cfg);
+    let query_weighting_layer: Linear = nn::linear(
+      var_stor / "w_q",
+      model_dimensions,
+      model_dimensions,
+      linear_config,
+    );
 
-    let w_k = nn::linear(vs / "w_k", d_model, d_model, cfg);
+    let key_weighting_layer: Linear = nn::linear(
+      var_stor / "w_k",
+      model_dimensions,
+      model_dimensions,
+      linear_config,
+    );
 
-    let w_v = nn::linear(vs / "w_v", d_model, d_model, cfg);
+    let value_weighting_layer: Linear = nn::linear(
+      var_stor / "w_v",
+      model_dimensions,
+      model_dimensions,
+      linear_config,
+    );
 
-    let w_o = nn::linear(vs / "w_o", d_model, d_model, cfg);
+    let output_weighting_layer: Linear = nn::linear(
+      var_stor / "w_o",
+      model_dimensions,
+      model_dimensions,
+      linear_config,
+    );
 
     Self {
-      w_q,
-      w_k,
-      w_v,
-      w_o,
-      n_heads,
-      d_head: d_model / n_heads,
+      query_weighting_layer,
+      key_weighting_layer,
+      value_weighting_layer,
+      output_weighting_layer,
+      heads,
+      head_dimensions,
     }
   }
 
@@ -49,42 +71,44 @@ impl MultiHeadSelfAttention {
     xs: &Tensor,
     train: bool,
   ) -> Tensor {
-    let (b, t, d) = (xs.size()[0], xs.size()[1], xs.size()[2]);
+    let query_0: Tensor = xs.apply(&self.query_weighting_layer);
 
-    let q = xs.apply(&self.w_q);
+    let key_0: Tensor = xs.apply(&self.key_weighting_layer);
 
-    let k = xs.apply(&self.w_k);
+    let value_0: Tensor = xs.apply(&self.value_weighting_layer);
 
-    let v = xs.apply(&self.w_v);
+    let (batch_size, time_steps, dimensions): (i64, i64, i64) =
+      (xs.size()[0], xs.size()[1], xs.size()[2]);
 
     let split = |x: Tensor| {
       x.view([
-        b,
-        t,
-        self.n_heads,
-        self.d_head,
+        batch_size,
+        time_steps,
+        self.heads,
+        self.head_dimensions,
       ])
       .transpose(1, 2)
     };
 
-    let q = split(q);
+    let query_1: Tensor = split(query_0);
 
-    let k = split(k);
+    let key_1: Tensor = split(key_0);
 
-    let v = split(v);
+    let value_1: Tensor = split(value_0);
 
-    let scale = (self.d_head as f64).sqrt();
+    let scale: f64 = (self.head_dimensions as f64).sqrt();
 
-    let scores = q.matmul(&k.transpose(-2, -1)) / scale;
+    let scores: Tensor = query_1.matmul(&key_1.transpose(-2, -1)) / scale;
 
-    let attn = scores.softmax(-1, Kind::Float);
+    let attention: Tensor = scores.softmax(-1, Kind::Float);
 
-    let ctx = attn.matmul(&v);
+    // scaled dot-product self-attention
+    let context: Tensor = attention.matmul(&value_1);
 
-    let out = ctx.transpose(1, 2).contiguous().view([
-      b, t, d,
+    let out: Tensor = context.transpose(1, 2).contiguous().view([
+      batch_size, time_steps, dimensions,
     ]);
 
-    out.apply_t(&self.w_o, train)
+    out.apply_t(&self.output_weighting_layer, train)
   }
 }
