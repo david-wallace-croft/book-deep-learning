@@ -7,11 +7,11 @@ use ::tch::nn::{
 const STABILITY_EPSILON: f64 = 1e-5;
 
 pub struct EncoderBlock {
-  pub dropout_probability: f64,
-  pub feed_forward_network: Sequential,
-  pub layer_norm_1: LayerNorm,
-  pub layer_norm_2: LayerNorm,
-  pub multi_head_self_attention: MultiHeadSelfAttention,
+  dropout_probability: f64,
+  feed_forward_network: Sequential,
+  layer_norm_1: LayerNorm,
+  layer_norm_2: LayerNorm,
+  multi_head_self_attention: MultiHeadSelfAttention,
 }
 
 impl EncoderBlock {

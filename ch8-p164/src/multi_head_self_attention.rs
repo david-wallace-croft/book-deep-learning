@@ -1,7 +1,7 @@
 use ::tch::nn::{self, Linear, LinearConfig, Path};
 use ::tch::{Kind, Tensor};
 
-pub struct Mhsa {
+pub struct MultiHeadSelfAttention {
   w_q: Linear,
   w_k: Linear,
   w_v: Linear,
@@ -10,7 +10,7 @@ pub struct Mhsa {
   d_head: i64,
 }
 
-impl Mhsa {
+impl MultiHeadSelfAttention {
   pub fn new(
     vs: &Path,
     d_model: i64,

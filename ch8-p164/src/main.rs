@@ -1,6 +1,6 @@
 mod encoder_block;
 mod example;
-mod mhsa;
+mod multi_head_self_attention;
 mod tiny_nlp_transformer;
 mod vocab;
 
