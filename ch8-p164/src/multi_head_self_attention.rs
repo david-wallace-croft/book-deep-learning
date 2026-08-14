@@ -66,6 +66,30 @@ impl MultiHeadSelfAttention {
     }
   }
 
+  fn combine_heads(
+    x: &Tensor,
+    batch_size: i64,
+    time_steps: i64,
+    dimensions: i64,
+  ) -> Tensor {
+    // Returns a tensor that is a transposed version of input.
+    // The given dimensions dim0 and dim1 are swapped.
+    // https://docs.pytorch.org/docs/main/generated/torch.transpose.html
+    let x_transpose: Tensor = x.transpose(1, 2);
+
+    // Returns a contiguous in memory tensor containing the same data as self
+    // tensor.
+    // https://docs.pytorch.org/docs/main/generated/torch.Tensor.contiguous.html
+    let x_contiguous: Tensor = x_transpose.contiguous();
+
+    // Returns a new tensor with the same data as the self tensor but of a
+    // different shape.
+    // https://docs.pytorch.org/docs/main/generated/torch.Tensor.view.html
+    x_contiguous.view([
+      batch_size, time_steps, dimensions,
+    ])
+  }
+
   pub fn forward(
     &self,
     xs: &Tensor,
@@ -80,21 +104,11 @@ impl MultiHeadSelfAttention {
     let (batch_size, time_steps, dimensions): (i64, i64, i64) =
       (xs.size()[0], xs.size()[1], xs.size()[2]);
 
-    let split = |x: Tensor| {
-      x.view([
-        batch_size,
-        time_steps,
-        self.heads,
-        self.head_dimensions,
-      ])
-      .transpose(1, 2)
-    };
+    let query_1: Tensor = self.split_heads(&query_0, batch_size, time_steps);
 
-    let query_1: Tensor = split(query_0);
+    let key_1: Tensor = self.split_heads(&key_0, batch_size, time_steps);
 
-    let key_1: Tensor = split(key_0);
-
-    let value_1: Tensor = split(value_0);
+    let value_1: Tensor = self.split_heads(&value_0, batch_size, time_steps);
 
     let scale: f64 = (self.head_dimensions as f64).sqrt();
 
@@ -105,10 +119,25 @@ impl MultiHeadSelfAttention {
     // scaled dot-product self-attention
     let context: Tensor = attention.matmul(&value_1);
 
-    let out: Tensor = context.transpose(1, 2).contiguous().view([
-      batch_size, time_steps, dimensions,
+    let concatenation: Tensor =
+      Self::combine_heads(&context, batch_size, time_steps, dimensions);
+
+    concatenation.apply_t(&self.output_weighting_layer, train)
+  }
+
+  fn split_heads(
+    &self,
+    x: &Tensor,
+    batch_size: i64,
+    time_steps: i64,
+  ) -> Tensor {
+    let x_view: Tensor = x.view([
+      batch_size,
+      time_steps,
+      self.heads,
+      self.head_dimensions,
     ]);
 
-    out.apply_t(&self.output_weighting_layer, train)
+    x_view.transpose(1, 2)
   }
 }
