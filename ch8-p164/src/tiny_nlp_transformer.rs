@@ -1,46 +1,64 @@
 use super::encoder_block::EncoderBlock;
-use ::tch::nn::{self, Embedding, LayerNorm, Linear, Module, Path};
+use ::tch::nn::{
+  self, Embedding, EmbeddingConfig, LayerNorm, LayerNormConfig, Linear, Module,
+  Path,
+};
 use ::tch::{Device, Kind, Tensor};
+
+/// A value added to the LayerNorm denominator for numerical stability
+const STABILITY_EPSILON: f64 = 1e-5;
 
 pub struct TinyNlpTransformer {
   pub embed: Embedding,
   pub block: EncoderBlock,
-  pub ln_f: LayerNorm,
+  pub layer_norm_f: LayerNorm,
   pub head: Linear,
-  pub d_model: i64,
+  pub model_dimensions: i64,
   pub device: Device,
 }
 
 impl TinyNlpTransformer {
   pub fn new(
-    vs: &Path,
-    vocab: i64,
-    d_model: i64,
-    n_heads: i64,
-    d_ff: i64,
+    var_stor: &Path,
+    vocabulary_size: i64,
+    model_dimensions: i64,
+    heads: i64,
+    ff_dimensions: i64,
     device: Device,
   ) -> Self {
-    let embed = nn::embedding(vs / "embed", vocab, d_model, Default::default());
+    let embed: Embedding = nn::embedding(
+      var_stor / "embed",
+      vocabulary_size,
+      model_dimensions,
+      EmbeddingConfig::default(),
+    );
 
-    let block = EncoderBlock::new(&(vs / "enc0"), d_model, n_heads, d_ff);
+    let block: EncoderBlock = EncoderBlock::new(
+      &(var_stor / "enc0"),
+      model_dimensions,
+      heads,
+      ff_dimensions,
+    );
 
-    let ln_f = nn::layer_norm(
-      vs / "ln_f",
-      vec![d_model],
-      nn::LayerNormConfig {
-        eps: 1e-5,
+    // https://docs.pytorch.org/docs/main/generated/torch.nn.LayerNorm.html
+    let layer_norm_f: LayerNorm = nn::layer_norm(
+      var_stor / "ln_f",
+      vec![model_dimensions],
+      LayerNormConfig {
+        eps: STABILITY_EPSILON,
         ..Default::default()
       },
     );
 
-    let head = nn::linear(vs / "head", d_model, 2, Default::default());
+    let head: Linear =
+      nn::linear(var_stor / "head", model_dimensions, 2, Default::default());
 
     Self {
       embed,
       block,
-      ln_f,
+      layer_norm_f,
       head,
-      d_model,
+      model_dimensions,
       device,
     }
   }
@@ -50,37 +68,54 @@ impl TinyNlpTransformer {
     x_idx: &Tensor,
     train: bool,
   ) -> Tensor {
-    let t = x_idx.size()[1];
+    let t: i64 = x_idx.size()[1];
 
-    let pe = Self::sinusoidal_pe(t, self.d_model, self.device);
+    let pe: Tensor = Self::sinusoidal_positional_encoding(
+      t,
+      self.model_dimensions,
+      self.device,
+    );
 
-    let mut x = self.embed.forward(x_idx) + pe;
+    let mut x: Tensor = self.embed.forward(x_idx) + pe;
 
     x = self.block.forward(&x, train);
 
-    let x = x
-      .apply(&self.ln_f)
-      .mean_dim([1].as_slice(), false, Kind::Float);
+    let x: Tensor =
+      x.apply(&self.layer_norm_f)
+        .mean_dim([1].as_slice(), false, Kind::Float);
 
     x.apply(&self.head)
   }
 
-  fn sinusoidal_pe(
-    t_steps: i64,
-    d_model: i64,
+  fn sinusoidal_positional_encoding(
+    time_steps: i64,
+    model_dimensions: i64,
     device: Device,
   ) -> Tensor {
-    assert!(d_model % 2 == 0, "d_model must be even");
+    assert!(
+      model_dimensions % 2 == 0,
+      "Model dimensions must be even for sine/cosine split"
+    );
 
-    let pos = Tensor::arange(t_steps, (Kind::Float, device)).unsqueeze(1);
+    // Returns a 1-D tensor of size [(end − start) / step]⌉ with values from the
+    // interval [start, end) taken with common difference step beginning from
+    // start.
+    // https://docs.pytorch.org/docs/main/generated/torch.arange.html
+    let pos: Tensor =
+      Tensor::arange(time_steps, (Kind::Float, device)).unsqueeze(1);
 
-    let i = Tensor::arange(d_model / 2, (Kind::Float, device));
+    let i: Tensor = Tensor::arange(model_dimensions / 2, (Kind::Float, device));
 
-    let inv_freq =
-      ((-10_000.0_f64.ln() * 2. / d_model as f64) as f32 * &i).exp();
+    let inv_freq: Tensor =
+      ((-10_000.0_f64.ln() * 2. / model_dimensions as f64) as f32 * &i).exp();
 
-    let angles = &pos * inv_freq.unsqueeze(0);
+    // Returns a new tensor with a dimension of size one inserted at the
+    // specified position.
+    // https://docs.pytorch.org/docs/main/generated/torch.unsqueeze.html
+    let angles: Tensor = &pos * inv_freq.unsqueeze(0);
 
+    // Concatenates the given sequence of tensors in the given dimension.
+    // https://docs.pytorch.org/docs/main/generated/torch.cat.html
     Tensor::cat(
       &[
         angles.sin(),

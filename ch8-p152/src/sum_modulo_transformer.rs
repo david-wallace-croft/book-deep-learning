@@ -11,7 +11,7 @@ const STABILITY_EPSILON: f64 = 1e-5;
 pub struct SumModuloTransformer {
   pub embed: Embedding,
   pub blocks: Vec<EncoderBlock>,
-  pub ln_f: LayerNorm,
+  pub layer_norm_f: LayerNorm,
   pub head: Linear,
   pub model_dimensions: i64,
   #[expect(dead_code)]
@@ -56,7 +56,7 @@ impl SumModuloTransformer {
     }
 
     // https://docs.pytorch.org/docs/main/generated/torch.nn.LayerNorm.html
-    let ln_f: LayerNorm = nn::layer_norm(
+    let layer_norm_f: LayerNorm = nn::layer_norm(
       var_stor / "ln_f",
       vec![model_dimensions],
       LayerNormConfig {
@@ -75,7 +75,7 @@ impl SumModuloTransformer {
     Self {
       embed,
       blocks,
-      ln_f,
+      layer_norm_f,
       head,
       model_dimensions,
       time_steps,
@@ -91,7 +91,7 @@ impl SumModuloTransformer {
   ) -> Tensor {
     let t: i64 = x_idx.size()[1];
 
-    let pe: Tensor = SumModuloTransformer::sinusoidal_positional_encoding(
+    let pe: Tensor = Self::sinusoidal_positional_encoding(
       t,
       self.model_dimensions,
       self.device,
@@ -107,9 +107,11 @@ impl SumModuloTransformer {
       x = b.forward_t(&x, train);
     }
 
-    let x: Tensor =
-      x.apply_t(&self.ln_f, train)
-        .mean_dim([1].as_slice(), false, Kind::Float);
+    let x: Tensor = x.apply_t(&self.layer_norm_f, train).mean_dim(
+      [1].as_slice(),
+      false,
+      Kind::Float,
+    );
 
     x.apply(&self.head)
   }
