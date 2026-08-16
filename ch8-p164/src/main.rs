@@ -18,21 +18,21 @@ const LEARNING_RATE: f64 = 1e-3;
 const MODEL_DIMENSIONS: i64 = 64;
 const PRINT_INTERVAL: usize = 10;
 const RANDOM_SEED: i64 = 42;
-const SENTENCES_NEGATIVE: [&'static str; 5] = [
+const SENTENCES_NEGATIVE: [&str; 5] = [
   "i hate this movie",
   "this film is terrible",
   "what a bad experience",
   "absolutely awful and boring",
   "i really disliked it",
 ];
-const SENTENCES_POSITIVE: [&'static str; 5] = [
+const SENTENCES_POSITIVE: [&str; 5] = [
   "i love this movie",
   "this film is fantastic",
   "what a great experience",
   "absolutely wonderful and inspiring",
   "i really liked it",
 ];
-const SENTENCES_TEST: [&'static str; 6] = [
+const SENTENCES_TEST: [&str; 6] = [
   "i really love this fantastic movie",
   "this film is bad and boring",
   "great and inspiring experience",
