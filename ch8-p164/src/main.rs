@@ -1,23 +1,46 @@
+use self::example::Example;
+use self::tiny_nlp_transformer::TinyNlpTransformer;
+use self::vocab::Vocab;
+use ::tch::nn::{Adam, Optimizer, OptimizerConfig, Path, VarStore};
+use ::tch::{Device, Kind, Result, Tensor};
+
 mod encoder_block;
 mod example;
 mod multi_head_self_attention;
 mod tiny_nlp_transformer;
 mod vocab;
 
-use self::example::Example;
-use self::tiny_nlp_transformer::TinyNlpTransformer;
-use self::vocab::Vocab;
-use ::tch::nn::{Adam, OptimizerConfig, VarStore};
-use ::tch::{Device, Kind, Result, Tensor};
-
 const BATCH_SIZE: i64 = 4;
-const D_FF: i64 = 128;
-const D_MODEL: i64 = 64;
-const EPOCHS: i64 = 300;
+const FEED_FORWARD_DIMENSIONS: i64 = 128;
+const EPOCHS: usize = 300;
+const HEADS: i64 = 4;
 const LEARNING_RATE: f64 = 1e-3;
-const N_HEADS: i64 = 4;
-const SEQ_LEN: usize = 8;
+const MODEL_DIMENSIONS: i64 = 64;
+const PRINT_INTERVAL: usize = 10;
 const RANDOM_SEED: i64 = 42;
+const SENTENCES_NEGATIVE: [&'static str; 5] = [
+  "i hate this movie",
+  "this film is terrible",
+  "what a bad experience",
+  "absolutely awful and boring",
+  "i really disliked it",
+];
+const SENTENCES_POSITIVE: [&'static str; 5] = [
+  "i love this movie",
+  "this film is fantastic",
+  "what a great experience",
+  "absolutely wonderful and inspiring",
+  "i really liked it",
+];
+const SENTENCES_TEST: [&'static str; 6] = [
+  "i really love this fantastic movie",
+  "this film is bad and boring",
+  "great and inspiring experience",
+  "absolutely terrible",
+  "i disliked this",
+  "i liked this wonderful film",
+];
+const SEQUENCE_LENGTH: usize = 8;
 
 fn main() -> Result<()> {
   tch::manual_seed(RANDOM_SEED);
@@ -26,156 +49,152 @@ fn main() -> Result<()> {
 
   // Data
 
-  let (vocab, dataset) = toy_data(SEQ_LEN);
+  let (vocab, dataset): (Vocab, Vec<Example>) = toy_data(SEQUENCE_LENGTH);
 
-  let n = dataset.len() as i64;
+  let dataset_length: i64 = dataset.len() as i64;
+
+  let vocabulary_size = vocab.size();
 
   // Model
 
-  let vs = VarStore::new(device);
+  let var_store: VarStore = VarStore::new(device);
 
-  let root = &vs.root();
+  let root_path: &Path<'_> = &var_store.root();
 
-  let model =
-    TinyNlpTransformer::new(root, vocab.size(), D_MODEL, N_HEADS, D_FF, device);
+  let model: TinyNlpTransformer = TinyNlpTransformer::new(
+    root_path,
+    vocabulary_size,
+    MODEL_DIMENSIONS,
+    HEADS,
+    FEED_FORWARD_DIMENSIONS,
+    device,
+  );
 
-  let mut opt = Adam::default().build(&vs, LEARNING_RATE).unwrap();
+  // Adaptive Moment Estimation (Adam)
+  // https://docs.pytorch.org/docs/main/generated/torch.optim.Adam.html
+  let mut optimizer: Optimizer =
+    Adam::default().build(&var_store, LEARNING_RATE).unwrap();
 
   // Training loop
 
   for epoch in 1..=EPOCHS {
-    let mut loss_epoch = 0.;
+    let mut loss: f64 = 0.;
 
-    let mut acc_epoch = 0.;
+    let mut accuracy_epoch: f64 = 0.;
 
-    let mut i0 = 0;
+    let mut i0: i64 = 0;
 
-    while i0 < n {
-      let i1 = (i0 + BATCH_SIZE).min(n);
+    while i0 < dataset_length {
+      let i1: i64 = (i0 + BATCH_SIZE).min(dataset_length);
 
-      let batch = &dataset[i0 as usize..i1 as usize];
+      let batch: &[Example] = &dataset[i0 as usize..i1 as usize];
 
       let x: Vec<i64> = batch.iter().flat_map(|ex| ex.x.clone()).collect();
 
       let y: Vec<i64> = batch.iter().map(|ex| ex.y).collect();
 
-      let xs = Tensor::from_slice(&x).to(device).view([
+      let xs: Tensor = Tensor::from_slice(&x).to(device).view([
         i1 - i0,
-        SEQ_LEN as i64,
+        SEQUENCE_LENGTH as i64,
       ]);
 
-      let ys = Tensor::from_slice(&y).to(device);
+      let ys: Tensor = Tensor::from_slice(&y).to(device);
 
-      let logits = model.forward(&xs, true);
+      let logits: Tensor = model.forward(&xs, true);
 
-      let loss = logits.cross_entropy_for_logits(&ys);
+      let loss_tensor: Tensor = logits.cross_entropy_for_logits(&ys);
 
-      let acc = accuracy(&logits, &ys);
+      let accuracy: f64 = accuracy_from_logits(&logits, &ys);
 
-      opt.backward_step(&loss);
+      optimizer.backward_step(&loss_tensor);
 
-      loss_epoch += loss.double_value(&[]);
+      loss += loss_tensor.double_value(&[]);
 
-      acc_epoch += acc * (i1 - i0) as f64;
+      accuracy_epoch += accuracy * (i1 - i0) as f64;
 
       i0 = i1;
     }
 
-    if epoch % 20 == 0 || epoch == 1 {
-      println!(
-        "epoch {:4} | loss {:.4} | acc {:.1}%",
-        epoch,
-        loss_epoch,
-        100. * acc_epoch / (n as f64)
-      );
+    if epoch % PRINT_INTERVAL == 0 {
+      let accuracy: f64 = 100. * accuracy_epoch / (dataset_length as f64);
+
+      println!("epoch {epoch} | loss {loss:.3} | accuracy {accuracy:.1}%");
     }
   }
 
-  let test_sentences = [
-    "i really love this fantastic movie",
-    "this film is bad and boring",
-    "great and inspiring experience",
-    "absolutely terrible",
-    "i disliked this",
-    "i liked this wonderful film",
-  ];
-
   println!("\n--- quick test ---");
 
-  for s in test_sentences {
-    let ids = vocab.encode(s, SEQ_LEN);
+  for test_sentence in SENTENCES_TEST {
+    let ids: Vec<i64> = vocab.encode(test_sentence, SEQUENCE_LENGTH);
 
-    let xs = Tensor::from_slice(&ids).to(device).view([
+    let xs: Tensor = Tensor::from_slice(&ids).to(device).view([
       1,
-      SEQ_LEN as i64,
+      SEQUENCE_LENGTH as i64,
     ]);
 
-    let logits = model.forward(&xs, false);
+    let logits: Tensor = model.forward(&xs, false);
 
-    let prob = logits.softmax(-1, Kind::Float);
+    let prob: Tensor = logits.softmax(-1, Kind::Float);
 
-    let cls = prob.argmax(-1, false).int64_value(&[]);
+    let cls: i64 = prob.argmax(-1, false).int64_value(&[]);
 
-    let p_pos = prob.double_value(&[
+    let p_pos: f64 = prob.double_value(&[
       0, 1,
     ]);
 
-    println!("{:45} -> class={} (p_pos={:.3})", s, cls, p_pos);
+    println!("{:45} -> class={} (p_pos={:.3})", test_sentence, cls, p_pos);
   }
 
   Ok(())
 }
 
-fn accuracy(
+fn accuracy_from_logits(
   logits: &Tensor,
   y: &Tensor,
 ) -> f64 {
-  let pred = logits.argmax(-1, false);
+  // Returns the indices of the max value of all elements in the input tensor
+  // https://docs.pytorch.org/docs/main/generated/torch.argmax.html
+  // The first argument is the dimension to reduce
+  let pred: Tensor = logits.argmax(-1, false);
 
-  pred
-    .eq_tensor(y)
-    .to_kind(Kind::Float)
-    .mean(Kind::Float)
-    .double_value(&[])
+  let correct_bool: Tensor = pred.eq_tensor(y);
+
+  // println!("correct_bool: {correct_bool}");
+
+  let correct_float: Tensor = correct_bool.to_kind(Kind::Float);
+
+  // println!("correct_float: {correct_float}");
+
+  let correct: Tensor = correct_float.mean(Kind::Float);
+
+  // correct is a scalar
+  // println!("correct: {correct}");
+
+  // Returns a double value on tensors holding a single element
+  correct.double_value(&[])
 }
 
-fn toy_data(seq_len: usize) -> (Vocab, Vec<Example>) {
-  let pos = [
-    "i love this movie",
-    "this film is fantastic",
-    "what a great experience",
-    "absolutely wonderful and inspiring",
-    "i really liked it",
-  ];
-
-  let neg = [
-    "i hate this movie",
-    "this film is terrible",
-    "what a bad experience",
-    "absolutely awful and boring",
-    "i really disliked it",
-  ];
-
-  let words: Vec<&str> = pos
+fn toy_data(sequence_length: usize) -> (Vocab, Vec<Example>) {
+  let words: Vec<&str> = SENTENCES_POSITIVE
     .iter()
-    .chain(neg.iter())
-    .flat_map(|s| s.split_whitespace())
+    .chain(SENTENCES_NEGATIVE.iter())
+    .flat_map(|s: &&str| s.split_whitespace())
     .collect();
 
-  let vocab = Vocab::new(&words);
+  let vocab: Vocab = Vocab::new(&words);
 
-  let mut data = Vec::new();
+  let mut data: Vec<Example> = Vec::new();
 
-  for s in pos {
+  for s in SENTENCES_POSITIVE {
     data.push(Example {
-      x: vocab.encode(s, seq_len),
+      x: vocab.encode(s, sequence_length),
       y: 1,
     });
   }
 
-  for s in neg {
+  for s in SENTENCES_NEGATIVE {
     data.push(Example {
-      x: vocab.encode(s, SEQ_LEN),
+      x: vocab.encode(s, SEQUENCE_LENGTH),
       y: 0,
     });
   }
