@@ -2,24 +2,32 @@ use ::std::collections::{BTreeSet, HashMap};
 
 #[derive(Default)]
 pub struct Vocab {
-  pub itos: Vec<String>,
-  pub stoi: HashMap<String, i64>,
+  pub id_to_word: Vec<String>,
+  pub word_to_id: HashMap<String, i64>,
 }
 
 impl Vocab {
   pub fn encode(
     &self,
     sentence: &str,
-    seq_len: usize,
+    sequence_length: usize,
   ) -> Vec<i64> {
     let mut ids: Vec<i64> = sentence
       .split_whitespace()
-      .map(|w| self.stoi.get(&w.to_lowercase()).cloned().unwrap_or(0))
+      .map(|word: &str| {
+        let word_lowercase: String = word.to_lowercase();
+
+        let id_option: Option<&i64> = self.word_to_id.get(&word_lowercase);
+
+        let id_option_cloned: Option<i64> = id_option.cloned();
+
+        id_option_cloned.unwrap_or(0)
+      })
       .collect();
 
-    ids.truncate(seq_len);
+    ids.truncate(sequence_length);
 
-    while ids.len() < seq_len {
+    while ids.len() < sequence_length {
       ids.push(0);
     }
 
@@ -27,29 +35,31 @@ impl Vocab {
   }
 
   pub fn new(words: &[&str]) -> Self {
-    let mut set = BTreeSet::new();
+    let mut set: BTreeSet<String> = BTreeSet::new();
 
-    set.insert("<unk>".to_string());
+    set.insert("<unknown>".to_string());
 
-    for w in words {
-      set.insert(w.to_lowercase());
+    for word in words {
+      let word_lowercase: String = word.to_lowercase();
+
+      set.insert(word_lowercase);
     }
 
-    let itos: Vec<String> = set.into_iter().collect();
+    let id_to_word: Vec<String> = set.into_iter().collect();
 
-    let stoi: HashMap<String, i64> = itos
+    let word_to_id: HashMap<String, i64> = id_to_word
       .iter()
       .enumerate()
-      .map(|(i, s)| (s.clone(), i as i64))
+      .map(|(index, word): (usize, &String)| (word.clone(), index as i64))
       .collect();
 
     Self {
-      itos,
-      stoi,
+      id_to_word,
+      word_to_id,
     }
   }
 
   pub fn size(&self) -> i64 {
-    self.itos.len() as i64
+    self.id_to_word.len() as i64
   }
 }
